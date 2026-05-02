@@ -183,5 +183,37 @@ document.getElementById('modalConfirmBtn').addEventListener('click', () => {
     closeModal();
 });
 </script>
+    <!-- Toast Notification System -->
+    <style>
+    #toast-container {
+        position: fixed; bottom: 24px; right: 24px; z-index: 10001;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+        background: #111827; color: white; padding: 12px 20px; border-radius: 12px;
+        font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: toastSlideIn 0.3s ease;
+    }
+    .toast.success { border-left: 4px solid #10b981; }
+    .toast.error { border-left: 4px solid #ef4444; }
+    @keyframes toastSlideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+    <div id="toast-container"></div>
+    <script>
+    function showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i> <span>${msg}</span>`;
+        container.appendChild(toast);
+        lucide.createIcons();
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 3000);
+        }, 3000);
+    }
+    </script>
 </body>
 </html>

@@ -38,7 +38,7 @@
                         <span>Total</span><span id="summaryTotal" style="color:#6366f1;">Rs 0</span>
                     </div>
                 </div>
-                <a href="{% url 'public_checkout_page' %}" id="checkoutBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:16px;text-decoration:none;" disabled>
+                <a href="{% url 'public_checkout_page' %}" id="checkoutBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:16px;text-decoration:none;">
                     <i data-lucide="credit-card" style="width:18px;height:18px;"></i> Proceed to Checkout
                 </a>
                 <a href="{% url 'public_products' %}" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:12px;">
@@ -51,9 +51,7 @@
                 <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#111827;display:flex;align-items:center;gap:8px;">
                     <i data-lucide="sparkles" style="width:16px;height:16px;color:#f59e0b;"></i> Frequently Bought Together
                 </h3>
-                <div id="upsellItems" style="display:flex;flex-direction:column;gap:16px;">
-                    <!-- Items populated via JS -->
-                </div>
+                <div id="upsellItems" style="display:flex;flex-direction:column;gap:16px;"></div>
             </div>
         </div>
     </div>
@@ -62,59 +60,21 @@
 {% block extra_scripts %}
 <style>
 .cart-item-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    transition: all 0.2s;
+    background: white; border: 1px solid #e5e7eb; border-radius: 16px;
+    padding: 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 20px;
 }
-.cart-item-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-
-.qty-control {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #f3f4f6;
-    border-radius: 10px;
-    padding: 6px 12px;
+.cart-item-img {
+    width: 80px; height: 80px; object-fit: cover; border-radius: 12px; background: #f3f4f6;
 }
-.qty-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 20px;
-    font-weight: 700;
-    color: #6366f1;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: background 0.2s;
+.cart-item-placeholder {
+    width: 80px; height: 80px; background: #f3f4f6; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; color: #cbd5e1;
 }
-.qty-btn:hover { background: #e0e7ff; }
-.qty-val { font-size: 16px; font-weight: 700; min-width: 24px; text-align: center; }
-
-.remove-btn {
-    background: #fee2e2;
-    border: none;
-    color: #ef4444;
-    padding: 8px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: background 0.2s;
-}
-.remove-btn:hover { background: #fecaca; }
+.qty-control { display: flex; align-items: center; gap: 12px; background: #f3f4f6; border-radius: 10px; padding: 6px 12px; }
+.qty-btn { background: none; border: none; cursor: pointer; font-size: 18px; font-weight: 700; color: #6366f1; width: 28px; height: 28px; }
+.qty-btn:hover { background: #e0e7ff; border-radius: 6px; }
+.qty-val { font-size: 15px; font-weight: 700; min-width: 20px; text-align: center; }
+.remove-btn { background: #fee2e2; border: none; color: #ef4444; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 </style>
 
 <script>
@@ -125,122 +85,88 @@ function renderCart() {
     const subtitle = document.getElementById('cartSubtitle');
 
     container.innerHTML = '';
+    let cart = getCart();
 
-    try {
-        let cart = getCart();
-        if (!Array.isArray(cart)) {
-            cart = [];
-            localStorage.removeItem('public_cart');
-        }
-
-        if (cart.length === 0) {
-            emptyBox.style.display = 'block';
-            checkoutBtn.style.pointerEvents = 'none';
-            checkoutBtn.style.opacity = '0.5';
-            subtitle.textContent = '0 items in your cart';
-            document.getElementById('summarySubtotal').textContent = 'Rs 0';
-            document.getElementById('summaryItems').textContent = '0';
-            document.getElementById('summaryTotal').textContent = 'Rs 0';
-            return;
-        }
-
-        emptyBox.style.display = 'none';
-        checkoutBtn.style.pointerEvents = 'auto';
-        checkoutBtn.style.opacity = '1';
-
-        let total = 0;
-        let totalItems = 0;
-
-        cart.forEach((item, idx) => {
-            let rawPrice = String(item.price).replace(/,/g, '');
-            const price = parseFloat(rawPrice) || 0;
-            const itemTotal = price * item.quantity;
-            total += itemTotal;
-            totalItems += item.quantity;
-
-            const div = document.createElement('div');
-            div.className = 'cart-item-card';
-            div.innerHTML = `
-                <div style="width:60px;height:60px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#a5b4fc;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3"/><path d="m21 8-5 5-5-5"/><path d="M16 3v10"/></svg>
-                </div>
-                <div style="flex:1;">
-                    <div style="font-size:16px;font-weight:700;color:#111827;">${item.name || 'Product'}</div>
-                    <div style="font-size:14px;color:#6b7280;margin-top:2px;">Rs ${price.toLocaleString()} each</div>
-                </div>
-                <div class="qty-control">
-                    <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
-                    <span class="qty-val">${item.quantity}</span>
-                    <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
-                </div>
-                <div style="font-size:17px;font-weight:800;color:#6366f1;min-width:90px;text-align:right;">Rs ${itemTotal.toLocaleString()}</div>
-                <button class="remove-btn" onclick="removeItem(${idx})">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
-                    Remove
-                </button>
-            `;
-            container.appendChild(div);
-        });
-
-        subtitle.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} in your cart`;
-        document.getElementById('summarySubtotal').textContent = `Rs ${total.toLocaleString()}`;
-        document.getElementById('summaryItems').textContent = totalItems;
-        document.getElementById('summaryTotal').textContent = `Rs ${total.toLocaleString()}`;
-
-        // Fetch Upsells
-        const itemIds = cart.map(i => i.product_id);
-        if (itemIds.length > 0) {
-            fetch('/api/upsells/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ item_ids: itemIds })
-            })
-            .then(r => r.json())
-            .then(data => {
-                const upsellSection = document.getElementById('upsellSection');
-                const upsellItems = document.getElementById('upsellItems');
-                
-                if (data.upsells && data.upsells.length > 0) {
-                    upsellItems.innerHTML = '';
-                    data.upsells.forEach(p => {
-                        if(p.stock > 0) {
-                            const div = document.createElement('div');
-                            div.style.display = 'flex';
-                            div.style.alignItems = 'center';
-                            div.style.gap = '12px';
-                            div.innerHTML = `
-                                ${p.image ? `<img src="${p.image}" alt="" style="width:48px;height:48px;border-radius:8px;object-fit:cover;background:#f3f4f6;">` : '<div style="width:48px;height:48px;background:#e5e7eb;border-radius:8px;"></div>'}
-                                <div style="flex:1;">
-                                    <div style="font-size:13px;font-weight:600;color:#111827;">${p.name}</div>
-                                    <div style="font-size:13px;color:#6366f1;font-weight:700;margin-top:2px;">Rs ${parseFloat(p.price).toLocaleString()}</div>
-                                </div>
-                                <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.price}', ${p.stock}); renderCart();" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">Add</button>
-                            `;
-                            upsellItems.appendChild(div);
-                        }
-                    });
-                    if(upsellItems.children.length > 0) {
-                        upsellSection.style.display = 'block';
-                        lucide.createIcons();
-                    } else {
-                        upsellSection.style.display = 'none';
-                    }
-                } else {
-                    upsellSection.style.display = 'none';
-                }
-            })
-            .catch(err => console.error('Error fetching upsells:', err));
-        } else {
-            document.getElementById('upsellSection').style.display = 'none';
-        }
-        
-    } catch (e) {
-        container.innerHTML = `<p style="color:red;padding:20px;">Error rendering cart: ${e.message}</p>`;
-        console.error(e);
+    if (cart.length === 0) {
+        emptyBox.style.display = 'block';
+        checkoutBtn.style.pointerEvents = 'none';
+        checkoutBtn.style.opacity = '0.5';
+        subtitle.textContent = '0 items in your cart';
+        return;
     }
+
+    emptyBox.style.display = 'none';
+    checkoutBtn.style.pointerEvents = 'auto';
+    checkoutBtn.style.opacity = '1';
+
+    let total = 0;
+    let totalItems = 0;
+
+    cart.forEach((item, idx) => {
+        let price = parseFloat(String(item.price).replace(/,/g, '')) || 0;
+        let itemTotal = price * item.quantity;
+        total += itemTotal;
+        totalItems += item.quantity;
+
+        const div = document.createElement('div');
+        div.className = 'cart-item-card';
+        div.innerHTML = `
+            ${item.image ? `<img src="${item.image}" class="cart-item-img">` : `<div class="cart-item-placeholder"><i data-lucide="package"></i></div>`}
+            <div style="flex:1;">
+                <div style="font-size:16px;font-weight:700;color:#111827;">${item.name}</div>
+                <div style="font-size:14px;color:#6b7280;margin-top:2px;">Rs ${price.toLocaleString()} each</div>
+            </div>
+            <div class="qty-control">
+                <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
+                <span class="qty-val">${item.quantity}</span>
+                <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
+            </div>
+            <div style="font-size:16px;font-weight:800;color:#6366f1;min-width:100px;text-align:right;">Rs ${itemTotal.toLocaleString()}</div>
+            <button class="remove-btn" onclick="removeItem(${idx})"><i data-lucide="trash-2" style="width:14px;"></i></button>
+        `;
+        container.appendChild(div);
+    });
+
+    subtitle.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} in your cart`;
+    document.getElementById('summarySubtotal').textContent = `Rs ${total.toLocaleString()}`;
+    document.getElementById('summaryItems').textContent = totalItems;
+    document.getElementById('summaryTotal').textContent = `Rs ${total.toLocaleString()}`;
+    
+    lucide.createIcons();
+
+    // Fetch Upsells
+    const itemIds = cart.map(i => i.product_id);
+    fetch('/api/upsells/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ item_ids: itemIds })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const upsellSection = document.getElementById('upsellSection');
+        const upsellItems = document.getElementById('upsellItems');
+        if (data.upsells && data.upsells.length > 0) {
+            upsellItems.innerHTML = '';
+            data.upsells.forEach(p => {
+                if(p.stock > 0) {
+                    const div = document.createElement('div');
+                    div.style.display = 'flex'; div.style.alignItems = 'center'; div.style.gap = '12px';
+                    div.innerHTML = `
+                        ${p.image ? `<img src="${p.image}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;">` : '<div style="width:48px;height:48px;background:#f3f4f6;border-radius:8px;"></div>'}
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">${p.name}</div>
+                            <div style="font-size:13px;color:#6366f1;font-weight:700;">Rs ${parseFloat(p.price).toLocaleString()}</div>
+                        </div>
+                        <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.price}', ${p.stock}, 1, '${p.image || ''}'); renderCart();" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">Add</button>
+                    `;
+                    upsellItems.appendChild(div);
+                }
+            });
+            upsellSection.style.display = upsellItems.children.length > 0 ? 'block' : 'none';
+        } else {
+            upsellSection.style.display = 'none';
+        }
+    });
 }
 
 function changeQty(idx, delta) {
@@ -260,10 +186,7 @@ function removeItem(idx) {
     cart.splice(idx, 1);
     saveCart(cart);
     renderCart();
-    showToast('Item removed from cart', 'success');
 }
-
-    // The checkout() function has been removed as we now redirect to the checkout page.
 
 renderCart();
 </script>

@@ -44,7 +44,7 @@
 
         <div class="product-actions" style="margin-top: 14px;">
             {% if product.stock > 0 %}
-            <button class="btn btn-primary" onclick="addToCart('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.price|stringformat:'f' }}', {{ product.stock }})">
+            <button class="btn btn-primary" onclick="addToCart('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.price|stringformat:'f' }}', {{ product.stock }}, 1, '{% if product.image %}{{ product.image.url }}{% endif %}')">
                 <i data-lucide="shopping-cart" style="width:16px;height:16px;"></i> Add to Cart
             </button>
             {% else %}

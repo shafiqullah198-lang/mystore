@@ -19,7 +19,7 @@
             --success: #10b981;
             --danger: #ef4444;
             --bg: #f9fafb;
-            --card-bg: #ffffff;
+            --card-bg: transparent;
             --text: #111827;
             --text-muted: #6b7280;
             --border: #e5e7eb;
@@ -243,23 +243,23 @@
             background: var(--card-bg);
             border-radius: 16px;
             overflow: hidden;
-            border: 1px solid var(--border);
+            border: none;
             transition: all 0.3s;
             position: relative;
             display: flex;
             flex-direction: column;
+            box-shadow: none;
         }
         .product-card:hover {
             transform: translateY(-6px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            border-color: var(--primary);
         }
 
         .product-img {
             width: 100%;
             height: 200px;
-            object-fit: cover;
-            background: #f3f4f6;
+            object-fit: contain;
+            background: none;
+            display: block;
         }
 
         .product-img-placeholder {
@@ -532,19 +532,28 @@
             const badge = document.getElementById('navCartCount');
             if (badge) badge.textContent = total;
         }
-        function addToCart(productId, productName, productPrice, productStock, quantity = 1) {
+        function addToCart(productId, productName, productPrice, productStock, quantity = 1, productImage = '') {
             let cart = getCart();
             const existing = cart.find(i => i.product_id == productId);
             if (existing) {
                 if (existing.quantity + quantity <= productStock) {
                     existing.quantity += quantity;
+                    // Update image if it was missing
+                    if (!existing.image && productImage) existing.image = productImage;
                     showToast(`${productName} qty updated!`, 'success');
                 } else {
                     showToast(`Max stock reached for ${productName}`, 'error');
                     return;
                 }
             } else {
-                cart.push({ product_id: productId, name: productName, price: productPrice, quantity: quantity, stock: productStock });
+                cart.push({ 
+                    product_id: productId, 
+                    name: productName, 
+                    price: productPrice, 
+                    quantity: quantity, 
+                    stock: productStock,
+                    image: productImage 
+                });
                 showToast(`${productName} added to cart!`, 'success');
             }
             saveCart(cart);
@@ -625,6 +634,52 @@
                 container.classList.remove('active');
             }
         });
+
+        // ---- Cart Repair & Sync ----
+        function repairCart() {
+            let cart = getCart();
+            if (cart.length === 0) return;
+
+            // Check if any item is missing an image
+            const needsRepair = cart.some(item => !item.image);
+            if (needsRepair) {
+                const ids = cart.map(i => i.product_id);
+                fetch('/api/cart-sync/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ item_ids: ids })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.items) {
+                        let updated = false;
+                        cart.forEach(item => {
+                            const cloud = data.items[String(item.product_id)];
+                            if (cloud) {
+                                if (!item.image && cloud.image) {
+                                    item.image = cloud.image;
+                                    updated = true;
+                                }
+                                // Also sync price while we're at it
+                                if (item.price != cloud.price) {
+                                    item.price = cloud.price;
+                                    updated = true;
+                                }
+                            }
+                        });
+                        if (updated) {
+                            saveCart(cart);
+                            // Refresh current page UI if needed
+                            if (typeof renderCart === 'function') renderCart();
+                            if (typeof loadSummary === 'function') loadSummary();
+                        }
+                    }
+                })
+                .catch(err => console.error('Cart repair failed:', err));
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', repairCart);
     </script>
 
     <!-- Custom Modal System -->

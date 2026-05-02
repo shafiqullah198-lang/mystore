@@ -15,6 +15,7 @@ urlpatterns = [
     path('public_checkout/', views.public_checkout, name='public_checkout'),
     path('api/search/', views.public_product_search, name='public_product_search'),
     path('api/upsells/', views.get_cart_upsells, name='get_cart_upsells'),
+    path('api/cart-sync/', views.get_cart_items_data, name='get_cart_sync'),
     
     # Auth & Admin
     path('login/', views.login_view, name='login'),

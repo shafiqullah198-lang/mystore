@@ -5,429 +5,260 @@
 
 {% block extra_head %}
 <style>
-/* ===== PAGE ===== */
-.checkout-wrapper {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 48px 24px;
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 32px;
-    align-items: start;
-}
-@media(max-width: 900px){ .checkout-wrapper { grid-template-columns: 1fr; } }
+    /* ===== PAGE ===== */
+    .checkout-wrapper {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 0;
+        background: white;
+        border-radius: 32px;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.12);
+        overflow: hidden;
+        min-height: 600px;
+    }
+    @media(max-width: 950px){ 
+        .checkout-wrapper { grid-template-columns: 1fr; border-radius: 0; } 
+    }
 
-/* ===== STEPS ===== */
-.step-bar {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 32px;
-}
-.step {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #9ca3af;
-}
-.step.active { color: #6366f1; }
-.step.done { color: #10b981; }
-.step-num {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700;
-    background: #e5e7eb; color: #9ca3af;
-}
-.step.active .step-num { background: #6366f1; color: white; }
-.step.done .step-num { background: #10b981; color: white; }
-.step-line { flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px; }
-.step-line.done { background: #10b981; }
+    /* ===== LEFT PANEL (VISUAL) ===== */
+    .visual-panel {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
+        padding: 48px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    .visual-panel::before {
+        content: ''; position: absolute; top: -50px; right: -50px;
+        width: 200px; height: 200px; border-radius: 50%;
+        background: rgba(255,255,255,0.1); filter: blur(40px);
+    }
+    .product-preview-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+    }
+    .product-preview-img {
+        max-width: 100%;
+        max-height: 280px;
+        background: none;
+        display: block;
+        transform: rotate(-10deg);
+        animation: float 4s ease-in-out infinite;
+        border: none;
+        box-shadow: none;
+    }
+    @keyframes float {
+        0%, 100% { transform: rotate(-10deg) translateY(0); }
+        50% { transform: rotate(-10deg) translateY(-15px); }
+    }
 
-/* ===== CARD ===== */
-.checkout-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 28px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-}
+    .receipt-summary {
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 2;
+    }
+    .receipt-summary h3 { font-size: 18px; font-weight: 800; margin-bottom: 16px; color: #1e293b; }
+    .receipt-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #64748b; }
+    .receipt-line.total { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px; font-weight: 800; font-size: 18px; color: #1e293b; }
 
-/* ===== PAYMENT METHOD ===== */
-.method-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-bottom: 28px;
-}
-.method-btn {
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 18px 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: white;
-}
-.method-btn:hover { border-color: #a5b4fc; background: #f5f3ff; }
-.method-btn.selected { border-color: #6366f1; background: #eef2ff; }
-.method-btn .method-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-    display: block;
-}
-.method-btn .method-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #374151;
-}
-.method-btn.selected .method-label { color: #6366f1; }
+    /* ===== RIGHT PANEL (FORM) ===== */
+    .form-panel {
+        padding: 48px;
+        background: white;
+    }
+    .form-panel h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: #1e293b; }
+    .form-panel p { font-size: 14px; color: #64748b; margin-bottom: 32px; }
 
-/* ===== FORM FIELDS ===== */
-.field-group { margin-bottom: 18px; }
-.field-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 7px;
-}
-.field-input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1.5px solid #d1d5db;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #111827;
-    outline: none;
-    transition: all 0.2s;
-    font-family: inherit;
-    background: white;
-}
-.field-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    /* ===== METHOD GRID ===== */
+    .method-grid {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+    .method-btn {
+        flex: 1;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f8fafc;
+    }
+    .method-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .method-btn.selected { background: #eef2ff; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
+    .method-icon { font-size: 20px; }
+    .method-label { font-size: 13px; font-weight: 700; color: #475569; }
+    .method-btn.selected .method-label { color: #6366f1; }
 
-/* ===== CARD VISUAL ===== */
-.card-visual {
-    background: linear-gradient(135deg, #6366f1, #4f46e5, #312e81);
-    border-radius: 16px;
-    padding: 24px;
-    color: white;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-    height: 160px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-.card-visual::before {
-    content: '';
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-}
-.card-visual::after {
-    content: '';
-    position: absolute;
-    bottom: -60px; left: -20px;
-    width: 200px; height: 200px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.05);
-}
-.card-chip {
-    width: 36px; height: 28px;
-    background: linear-gradient(135deg, #fde68a, #f59e0b);
-    border-radius: 5px;
-    position: relative;
-    z-index: 1;
-}
-.card-number-display {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    font-family: 'Courier New', monospace;
-    position: relative;
-    z-index: 1;
-}
-.card-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    position: relative;
-    z-index: 1;
-}
-.card-holder-label { font-size: 10px; opacity: 0.7; text-transform: uppercase; margin-bottom: 3px; }
-.card-holder-name { font-size: 13px; font-weight: 600; text-transform: uppercase; }
-.card-network { font-size: 22px; font-weight: 900; font-style: italic; }
+    /* ===== FORM FIELDS ===== */
+    .field-group { margin-bottom: 20px; }
+    .field-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field-input {
+        width: 100%;
+        padding: 14px 18px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 14px;
+        color: #1e293b;
+        outline: none;
+        transition: all 0.2s;
+        background: #fdfdfd;
+    }
+    .field-input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.08); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-/* ===== PAY BUTTON ===== */
-.pay-btn {
-    width: 100%;
-    padding: 16px;
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 8px;
-}
-.pay-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(99,102,241,0.4); }
-.pay-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+    /* ===== PAY BUTTON ===== */
+    .pay-btn {
+        width: 100%;
+        padding: 18px;
+        background: #1e1e1e;
+        color: white;
+        border: none;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 12px;
+    }
+    .pay-btn:hover { background: #000; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    .pay-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-/* ===== LOADING ===== */
-.spinner {
-    width: 22px; height: 22px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+    /* ===== SUCCESS SCREEN ===== */
+    #successScreen { text-align: center; padding: 40px 0; }
+    .success-icon { 
+        width: 72px; height: 72px; background: #10b981; color: white; 
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 24px; font-size: 32px;
+    }
 
-/* ===== SUCCESS ===== */
-#successScreen {
-    display: none;
-    text-align: center;
-    padding: 40px 20px;
-}
-.success-circle {
-    width: 80px; height: 80px;
-    background: linear-gradient(135deg, #10b981, #059669);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes popIn {
-    from { transform: scale(0); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-.download-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: #6366f1;
-    color: white;
-    padding: 14px 28px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 15px;
-    text-decoration: none;
-    margin-top: 8px;
-    transition: all 0.2s;
-}
-.download-btn:hover { background: #4f46e5; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99,102,241,0.35); }
-
-/* ===== ORDER SUMMARY ===== */
-.summary-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    position: sticky;
-    top: 90px;
-}
-.summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 14px;
-}
-.summary-item:last-child { border-bottom: none; }
-.summary-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 0 0;
-    border-top: 2px solid #e5e7eb;
-    margin-top: 8px;
-    font-size: 18px;
-    font-weight: 800;
-}
-.summary-total span:last-child { color: #6366f1; }
+    /* ===== ERROR STATE ===== */
+    .field-input.error {
+        border-color: #ef4444 !important;
+        background-color: #fef2f2 !important;
+        animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="padding: 32px 24px 0; max-width: 1100px; margin: 0 auto;">
-    <!-- Breadcrumb -->
-    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#9ca3af;margin-bottom:24px;">
-        <a href="{% url 'public_cart' %}" style="color:#6366f1;text-decoration:none;font-weight:600;">← Back to Cart</a>
-    </div>
-
-    <!-- Step Bar -->
-    <div class="step-bar">
-        <div class="step done">
-            <div class="step-num">✓</div>
-            <span>Cart</span>
-        </div>
-        <div class="step-line done"></div>
-        <div class="step active" id="step2El">
-            <div class="step-num">2</div>
-            <span>Payment</span>
-        </div>
-        <div class="step-line" id="line2"></div>
-        <div class="step" id="step3El">
-            <div class="step-num">3</div>
-            <span>Confirmation</span>
-        </div>
-    </div>
-</div>
-
 <div class="checkout-wrapper">
 
-    <!-- ===== LEFT: PAYMENT PANEL ===== -->
-    <div>
-        <!-- MAIN FORM CARD -->
-        <div class="checkout-card" id="paymentPanel">
-            <h2 style="font-size:20px;font-weight:800;margin-bottom:6px;">Payment Method</h2>
-            <p style="font-size:13px;color:#9ca3af;margin-bottom:24px;">Choose how you'd like to pay</p>
+    <!-- ===== LEFT PANEL: VISUAL & RECEIPT ===== -->
+    <div class="visual-panel">
+        <a href="{% url 'public_cart' %}" style="color:rgba(255,255,255,0.7); text-decoration:none; font-size:13px; font-weight:600; margin-bottom:20px; display:inline-block;">
+            ← Back to Cart
+        </a>
+        
+        <div class="product-preview-container" id="productPreviewContainer">
+            <div id="productPlaceholder" style="color:white; font-size:14px; opacity:0.6;">Loading preview...</div>
+        </div>
 
-            <!-- METHOD SELECTION -->
-            <div class="method-grid" id="methodGrid">
+        <div class="receipt-summary">
+            <h3>Receipt Summary</h3>
+            <div id="receiptLines"></div>
+            <div class="receipt-line total">
+                <span>Total</span>
+                <span id="receiptTotal">Rs 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RIGHT PANEL: PAYMENT FORM ===== -->
+    <div class="form-panel">
+        <div id="paymentFormArea">
+            <h2>Payment Information</h2>
+            <p>Choose your payment method and enter your details.</p>
+
+            <div class="method-grid">
                 <div class="method-btn" onclick="selectMethod('bank')" id="method-bank">
                     <span class="method-icon">🏦</span>
-                    <div class="method-label">Bank Transfer</div>
+                    <div class="method-label">Bank</div>
                 </div>
-                <div class="method-btn" onclick="selectMethod('card')" id="method-card">
+                <div class="method-btn selected" onclick="selectMethod('card')" id="method-card">
                     <span class="method-icon">💳</span>
-                    <div class="method-label">Debit/Credit</div>
+                    <div class="method-label">Card</div>
                 </div>
-            </div>
-
-            <!-- BANK TRANSFER FORM -->
-            <div id="form-bank" style="display:none;">
-                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px;">
-                    <div style="font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:12px;">🏦 Bank Account Details</div>
-                    <div style="display:grid;gap:8px;font-size:13px;color:#1e40af;">
-                        <div style="display:flex;justify-content:space-between;"><span>Bank Name:</span><strong>HBL Bank</strong></div>
-                        <div style="display:flex;justify-content:space-between;"><span>Account Title:</span><strong>MyStore Pvt Ltd</strong></div>
-                        <div style="display:flex;justify-content:space-between;"><span>Account No:</span><strong>1234-5678-9012</strong></div>
-                        <div style="display:flex;justify-content:space-between;"><span>IBAN:</span><strong>PK36HABB0000001123456702</strong></div>
-                    </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">Your Name <span style="color:#ef4444;">*</span></label>
-                    <input class="field-input" type="text" id="bankName" placeholder="Account holder name" required>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">Transaction Reference # <span style="color:#ef4444;">*</span></label>
-                    <input class="field-input" type="text" id="bankRef" placeholder="e.g. TXN123456789" required>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">Sending Bank</label>
-                    <input class="field-input" type="text" id="bankSender" placeholder="e.g. Meezan Bank">
-                </div>
-                <button class="pay-btn" onclick="placeOrder('bank')" id="payBankBtn">
-                    <span>✓ Confirm Bank Transfer</span>
-                </button>
             </div>
 
             <!-- CARD FORM -->
-            <div id="form-card" style="display:none;">
-                <!-- Visual Card -->
-                <div class="card-visual" id="cardVisual">
-                    <div class="card-chip"></div>
-                    <div class="card-number-display" id="cardNumDisplay">•••• •••• •••• ••••</div>
-                    <div class="card-bottom">
-                        <div>
-                            <div class="card-holder-label">Card Holder</div>
-                            <div class="card-holder-name" id="cardNameDisplay">YOUR NAME</div>
-                        </div>
-                        <div class="card-network" id="cardNetwork">VISA</div>
-                    </div>
-                </div>
-
+            <div id="form-card">
                 <div class="field-group">
-                    <label class="field-label">Card Number <span style="color:#ef4444;">*</span></label>
-                    <input class="field-input" type="text" id="cardNumber" placeholder="1234 5678 9012 3456"
-                           maxlength="19" oninput="formatCardNumber(this)" required>
+                    <label class="field-label">Card holder</label>
+                    <input type="text" class="field-input" id="cardName" placeholder="e.g. John Doe">
                 </div>
                 <div class="field-group">
-                    <label class="field-label">Cardholder Name <span style="color:#ef4444;">*</span></label>
-                    <input class="field-input" type="text" id="cardName" placeholder="Name on card"
-                           oninput="document.getElementById('cardNameDisplay').textContent = this.value.toUpperCase() || 'YOUR NAME'" required>
+                    <label class="field-label">Card number</label>
+                    <input type="text" class="field-input" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCardNumber(this)">
                 </div>
                 <div class="field-row">
                     <div class="field-group">
-                        <label class="field-label">Expiry Date <span style="color:#ef4444;">*</span></label>
-                        <input class="field-input" type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5"
-                               oninput="formatExpiry(this)" required>
+                        <label class="field-label">Expiration date</label>
+                        <input type="text" class="field-input" id="cardExpiry" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)">
                     </div>
                     <div class="field-group">
-                        <label class="field-label">CVV <span style="color:#ef4444;">*</span></label>
-                        <input class="field-input" type="password" id="cardCvv" placeholder="•••" maxlength="4" required>
+                        <label class="field-label">CVV</label>
+                        <input type="password" class="field-input" id="cardCvv" placeholder="•••" maxlength="4">
                     </div>
                 </div>
+                <button class="pay-btn" onclick="placeOrder('card')" id="payCardBtn">Buy Now</button>
+            </div>
 
-                <div style="display:flex;align-items:center;gap:8px;background:#f9fafb;border-radius:10px;padding:12px 14px;margin-bottom:16px;">
-                    <span style="font-size:18px;">🔒</span>
-                    <span style="font-size:12px;color:#6b7280;">Your card information is encrypted and secure. We never store card details.</span>
+            <!-- BANK FORM -->
+            <div id="form-bank" style="display:none;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:20px; font-size:13px;">
+                    <strong style="color:#4f46e5;">Bank Account:</strong> MyStore Pvt Ltd<br>
+                    <strong>HBL:</strong> 1234-5678-9012<br>
+                    <strong>IBAN:</strong> PK36HABB0000001123456702
                 </div>
-
-                <button class="pay-btn" onclick="placeOrder('card')" id="payCardBtn">
-                    <span>🔒 Complete Payment</span>
-                </button>
+                <div class="field-group">
+                    <label class="field-label">Reference Number</label>
+                    <input type="text" class="field-input" id="bankRef" placeholder="TXN-123456">
+                </div>
+                <button class="pay-btn" onclick="placeOrder('bank')" id="payBankBtn">Confirm Transfer</button>
             </div>
         </div>
 
-        <div class="checkout-card" id="successPanel" style="display:none;">
-            <div id="successScreen" style="display:none;text-align:center;padding:40px 20px;">
-                <div class="success-circle">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </div>
-                <h2 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:8px;">Order Confirmed! 🎉</h2>
-                <p style="color:#6b7280;font-size:15px;margin-bottom:6px;">Your payment was processed successfully.</p>
-                <p id="invoiceNumDisplay" style="font-size:13px;color:#9ca3af;margin-bottom:4px;"></p>
-
-                <!-- Tracking ID box -->
-                <div id="trackingBox" style="display:none;background:#eef2ff;border-radius:14px;padding:16px 24px;margin:20px auto;max-width:360px;">
-                    <div style="font-size:12px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Your Tracking ID</div>
-                    <div id="trackingIdDisplay" style="font-size:22px;font-weight:800;color:#312e81;font-family:monospace;"></div>
-                    <div style="font-size:12px;color:#818cf8;margin-top:4px;">Save this to track your delivery</div>
-                </div>
-
-                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:20px;">
-                    <a id="trackOrderBtn" href="#" style="display:inline-flex;align-items:center;gap:10px;background:#6366f1;color:white;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;transition:all .2s;">
-                        📦 Track My Order
-                    </a>
-                    <a id="downloadInvoiceBtn" href="#" target="_blank" class="download-btn" style="background:#10b981;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        Download Receipt
-                    </a>
-                    <a href="{% url 'public_home' %}" style="font-size:14px;color:#6366f1;text-decoration:none;font-weight:600;">← Continue Shopping</a>
-                </div>
+        <!-- SUCCESS SCREEN -->
+        <div id="successScreen" style="display:none;">
+            <div class="success-icon">✓</div>
+            <h2 style="margin-bottom:12px;">Order Successful!</h2>
+            <p style="margin-bottom:24px;">Thank you for your purchase. Your order has been placed successfully.</p>
+            
+            <div id="trackingInfo" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:16px; padding:20px; margin-bottom:24px;">
+                <div style="font-size:12px; color:#166534; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Tracking ID</div>
+                <div id="resTrackingId" style="font-size:24px; font-weight:800; color:#14532d; font-family:monospace;">---</div>
             </div>
-        </div>
-    </div>
 
-    <!-- ===== RIGHT: ORDER SUMMARY ===== -->
-    <div class="summary-card">
-        <h3 style="font-size:17px;font-weight:800;margin-bottom:20px;">Order Summary</h3>
-        <div id="summaryItems" style="margin-bottom:16px;"></div>
-        <div class="summary-total">
-            <span>Total</span>
-            <span id="summaryGrandTotal">Rs 0</span>
-        </div>
-        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:10px;text-align:center;">
-            <div style="font-size:12px;color:#9ca3af;">🔒 Secure Checkout</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <a id="resTrackUrl" href="#" class="pay-btn" style="background:#4f46e5; text-align:center; text-decoration:none;">Track Order</a>
+                <a id="resInvoiceUrl" href="#" target="_blank" style="font-size:14px; color:#6366f1; text-decoration:none; font-weight:600;">Download Receipt</a>
+                <a href="{% url 'public_home' %}" style="font-size:14px; color:#64748b; text-decoration:none; font-weight:500;">Back to Home</a>
+            </div>
         </div>
     </div>
 </div>
@@ -435,81 +266,76 @@
 
 {% block extra_scripts %}
 <script>
-    let selectedMethod = null;
-    let invoiceUrl = null;
+    let selectedMethod = 'card';
 
-    // ---- Load cart ----
     function loadSummary() {
-        const container = document.getElementById('summaryItems');
-        container.innerHTML = '';
+        const receiptContainer = document.getElementById('receiptLines');
+        const previewContainer = document.getElementById('productPreviewContainer');
+        if (!receiptContainer || !previewContainer) return;
+        
+        receiptContainer.innerHTML = '';
         let total = 0;
 
         try {
             let cart = getCart();
-            // Ensure cart is an array
-            if (!Array.isArray(cart)) {
-                cart = [];
-                localStorage.removeItem('public_cart');
-            }
-
-            if (cart.length === 0) {
-                container.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:14px;">Cart is empty</p>';
-                setTimeout(() => { window.location.href = '/cart/'; }, 1500);
+            if (!Array.isArray(cart) || cart.length === 0) {
+                window.location.href = '/cart/';
                 return;
             }
 
+            // 1. Inject Product Preview (First item in cart)
+            const firstItem = cart[0];
+            if (firstItem.image) {
+                previewContainer.innerHTML = `<img src="${firstItem.image}" class="product-preview-img" alt="${firstItem.name}">`;
+            } else {
+                previewContainer.innerHTML = `<div style="font-size:100px;">📦</div>`;
+            }
+
+            // 2. Build Receipt Summary
             cart.forEach(item => {
-                // Remove any commas and parse
-                let rawPrice = String(item.price).replace(/,/g, '');
-                const price = parseFloat(rawPrice) || 0;
-                const itemTotal = price * item.quantity;
+                let price = parseFloat(String(item.price).replace(/,/g, '')) || 0;
+                let itemTotal = price * item.quantity;
                 total += itemTotal;
                 
                 const div = document.createElement('div');
-                div.className = 'summary-item';
+                div.className = 'receipt-line';
                 div.innerHTML = `
-                    <div>
-                        <div style="font-weight:600;font-size:14px;">${item.name || 'Product'}</div>
-                        <div style="font-size:12px;color:#9ca3af;">Qty: ${item.quantity} × Rs ${price.toLocaleString()}</div>
-                    </div>
-                    <div style="font-weight:700;font-size:14px;">Rs ${itemTotal.toLocaleString()}</div>
+                    <span>${item.name} (x${item.quantity})</span>
+                    <span>Rs ${itemTotal.toLocaleString()}</span>
                 `;
-                container.appendChild(div);
+                receiptContainer.appendChild(div);
             });
-            document.getElementById('summaryGrandTotal').textContent = 'Rs ' + total.toLocaleString();
+
+            // Extra lines for aesthetic
+            receiptContainer.innerHTML += `
+                <div class="receipt-line"><span>Delivery</span><span>Free</span></div>
+                <div class="receipt-line"><span>Tax (Included)</span><span>Rs 0</span></div>
+            `;
+
+            document.getElementById('receiptTotal').textContent = 'Rs ' + total.toLocaleString();
         } catch (e) {
-            container.innerHTML = `<p style="color:red;font-size:12px;">Error: ${e.message}</p>`;
             console.error('Cart render error:', e);
         }
     }
 
-    // ---- Method selection ----
     function selectMethod(method) {
         selectedMethod = method;
         ['bank', 'card'].forEach(m => {
-            document.getElementById('method-' + m).classList.remove('selected');
-            document.getElementById('form-' + m).style.display = 'none';
+            const btn = document.getElementById('method-' + m);
+            const form = document.getElementById('form-' + m);
+            if (btn) btn.classList.remove('selected');
+            if (form) form.style.display = 'none';
         });
-        document.getElementById('method-' + method).classList.add('selected');
-        document.getElementById('form-' + method).style.display = 'block';
+        const activeBtn = document.getElementById('method-' + method);
+        const activeForm = document.getElementById('form-' + method);
+        if (activeBtn) activeBtn.classList.add('selected');
+        if (activeForm) activeForm.style.display = 'block';
     }
 
-    // ---- Card number formatting ----
     function formatCardNumber(input) {
         let val = input.value.replace(/\D/g, '').substring(0, 16);
         val = val.match(/.{1,4}/g)?.join(' ') || val;
         input.value = val;
-        const display = val || '•••• •••• •••• ••••';
-        const padded = display.padEnd(19, '•').substring(0, 19);
-        document.getElementById('cardNumDisplay').textContent = padded.length < 4 ? '•••• •••• •••• ••••' : display;
-
-        // Detect card network
-        const first = val.replace(/ /g, '')[0];
-        const network = document.getElementById('cardNetwork');
-        if (first === '4') network.textContent = 'VISA';
-        else if (first === '5') network.textContent = 'MASTERCARD';
-        else if (first === '3') network.textContent = 'AMEX';
-        else network.textContent = 'CARD';
     }
 
     function formatExpiry(input) {
@@ -518,29 +344,71 @@
         input.value = val;
     }
 
-    // ---- Place Order ----
     function placeOrder(method) {
         const cart = getCart();
-        if (!cart.length) { alert('Cart is empty!'); return; }
+        
+        // Reset previous errors
+        document.querySelectorAll('.field-input').forEach(el => el.classList.remove('error'));
 
-        // Validate
-        if (method === 'bank') {
-            if (!document.getElementById('bankName').value.trim()) { alert('Please enter your name.'); return; }
-            if (!document.getElementById('bankRef').value.trim()) { alert('Please enter the transaction reference.'); return; }
-        }
         if (method === 'card') {
-            const num = document.getElementById('cardNumber').value.replace(/ /g, '');
-            if (num.length < 16) { alert('Please enter a valid 16-digit card number.'); return; }
-            if (!document.getElementById('cardName').value.trim()) { alert('Please enter the cardholder name.'); return; }
-            if (document.getElementById('cardExpiry').value.length < 5) { alert('Please enter expiry date.'); return; }
-            if (document.getElementById('cardCvv').value.length < 3) { alert('Please enter CVV.'); return; }
+            const cardNameEl = document.getElementById('cardName');
+            const cardNumberEl = document.getElementById('cardNumber');
+            const cardExpiryEl = document.getElementById('cardExpiry');
+            const cardCvvEl = document.getElementById('cardCvv');
+
+            const cardName = cardNameEl.value.trim();
+            const cardNumber = cardNumberEl.value.replace(/\s/g, '');
+            const cardExpiry = cardExpiryEl.value;
+            const cardCvv = cardCvvEl.value;
+
+            if (!cardName) { 
+                cardNameEl.classList.add('error');
+                showToast('Please enter card holder name.', 'error'); 
+                return; 
+            }
+            if (cardNumber.length < 16) { 
+                cardNumberEl.classList.add('error');
+                showToast('Please enter a valid 16-digit card number.', 'error'); 
+                return; 
+            }
+            if (!cardExpiry || !cardExpiry.includes('/')) { 
+                cardExpiryEl.classList.add('error');
+                showToast('Please enter expiry date in MM/YY format.', 'error'); 
+                return; 
+            }
+            if (cardCvv.length < 3) { 
+                cardCvvEl.classList.add('error');
+                showToast('Please enter a valid CVV.', 'error'); 
+                return; 
+            }
+
+            // Date validation
+            const parts = cardExpiry.split('/');
+            const month = parseInt(parts[0], 10);
+            const year = parseInt('20' + parts[1], 10);
+            
+            const now = new Date();
+            const curMonth = now.getMonth() + 1;
+            const curYear = now.getFullYear();
+
+            if (month < 1 || month > 12) {
+                cardExpiryEl.classList.add('error');
+                showToast('Invalid month. Please enter 01-12.', 'error');
+                return;
+            }
+
+            if (year < curYear || (year === curYear && month < curMonth)) {
+                cardExpiryEl.classList.add('error');
+                showToast('This card has already expired. Please use a valid card.', 'error');
+                return;
+            }
         }
 
-        // Show loading
-        const btnId = method === 'bank' ? 'payBankBtn' : 'payCardBtn';
-        const btn = document.getElementById(btnId);
+        const btn = document.getElementById(method === 'bank' ? 'payBankBtn' : 'payCardBtn');
+        
         btn.disabled = true;
-        btn.innerHTML = '<div class="spinner"></div><span>Processing...</span>';
+        const originalText = btn.textContent;
+        btn.textContent = 'Processing...';
 
         fetch('/public_checkout/', {
             method: 'POST',
@@ -548,59 +416,47 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-        body: JSON.stringify({
+            body: JSON.stringify({
                 items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
                 payment_method: method,
-                customer_name:  document.getElementById('bankName')?.value || document.getElementById('cardName')?.value || '',
-                customer_email: '',
-                customer_phone: '',
-                shipping_address: '',
+                customer_name: document.getElementById('cardName')?.value || 'Guest',
+                card_expiry: document.getElementById('cardExpiry')?.value || '',
+                customer_email: '', customer_phone: '', shipping_address: '',
             })
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                invoiceUrl = data.invoice_url;
                 localStorage.removeItem('public_cart');
-                updateCartBadge();
-                showSuccess(data.invoice_url, data.invoice_number, data.tracking_id, data.track_url);
+                if (typeof updateCartBadge === 'function') updateCartBadge();
+                showSuccess(data);
             } else {
                 btn.disabled = false;
-                btn.innerHTML = method === 'bank' ? '✓ Confirm Bank Transfer' : '🔒 Complete Payment';
-                alert('❌ ' + (data.error || 'Something went wrong. Please try again.'));
+                btn.textContent = originalText;
+                showToast(data.error || 'Payment failed.', 'error');
             }
         })
-        .catch(() => {
+        .catch(err => {
             btn.disabled = false;
-            btn.innerHTML = '🔒 Complete Payment';
-            alert('❌ Network error. Please try again.');
+            btn.textContent = 'Retry';
+            console.error(err);
+            alert('Network error. Please try again.');
         });
     }
 
-    function showSuccess(url, invoiceNum, trackingId, trackUrl) {
-        document.getElementById('step2El').classList.remove('active');
-        document.getElementById('step2El').classList.add('done');
-        document.getElementById('step2El').querySelector('.step-num').textContent = '✓';
-        document.getElementById('line2').classList.add('done');
-        document.getElementById('step3El').classList.add('active');
-
-        document.getElementById('paymentPanel').style.display = 'none';
-        document.getElementById('successPanel').style.display = 'block';
-        document.getElementById('successScreen').style.display = 'block';
-        document.getElementById('downloadInvoiceBtn').href = url;
-
-        if (invoiceNum)
-            document.getElementById('invoiceNumDisplay').textContent = 'Invoice: ' + invoiceNum;
-
-        if (trackingId) {
-            document.getElementById('trackingIdDisplay').textContent = trackingId;
-            document.getElementById('trackingBox').style.display = 'block';
-            document.getElementById('trackOrderBtn').href = trackUrl || ('/track/' + trackingId + '/');
-        }
-
+    function showSuccess(data) {
+        const area = document.getElementById('paymentFormArea');
+        const screen = document.getElementById('successScreen');
+        if (area) area.style.display = 'none';
+        if (screen) screen.style.display = 'block';
+        
+        document.getElementById('resTrackingId').textContent = data.tracking_id;
+        document.getElementById('resTrackUrl').href = data.track_url || `/track/${data.tracking_id}/`;
+        document.getElementById('resInvoiceUrl').href = data.invoice_url;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    loadSummary();
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadSummary);
 </script>
 {% endblock %}

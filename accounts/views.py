@@ -1150,6 +1150,29 @@ def get_cart_upsells(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
+
+@require_POST
+def get_cart_items_data(request):
+    """Returns image and price data for a list of product IDs to repair/sync the public cart."""
+    try:
+        data = json.loads(request.body)
+        item_ids = data.get('item_ids', [])
+        if not item_ids:
+            return JsonResponse({'items': {}})
+            
+        products = Product.objects.filter(id__in=item_ids, is_active=True)
+        results = {}
+        for p in products:
+            results[str(p.id)] = {
+                'image': p.image.url if p.image else '',
+                'price': str(p.price),
+                'stock': p.stock,
+                'name': p.name
+            }
+        return JsonResponse({'items': results})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
 def public_about(request):
     return render(request, 'public_about.html')
 
@@ -1168,9 +1191,28 @@ def public_checkout(request):
         if not items:
             return JsonResponse({'error': 'Cart is empty'}, status=400)
             
+        # Validate Card Expiry if payment method is Card
+        payment_method = data.get('payment_method', 'Cash').title()
+        if payment_method == 'Card':
+            card_expiry = data.get('card_expiry', '').strip()
+            if not card_expiry or '/' not in card_expiry:
+                return JsonResponse({'error': 'Card expiry date (MM/YY) is required.'}, status=400)
+            try:
+                parts = card_expiry.split('/')
+                month = int(parts[0])
+                year = int('20' + parts[1])
+                
+                from django.utils import timezone
+                now = timezone.now()
+                if month < 1 or month > 12:
+                    return JsonResponse({'error': 'Invalid month in card expiry.'}, status=400)
+                if year < now.year or (year == now.year and month < now.month):
+                    return JsonResponse({'error': 'This card has already expired. Please use a valid card.'}, status=400)
+            except (ValueError, IndexError):
+                return JsonResponse({'error': 'Invalid card expiry format. Use MM/YY.'}, status=400)
+
         from django.db import transaction
         with transaction.atomic():
-            payment_method = data.get('payment_method', 'Cash').title()
             invoice = Invoice.objects.create(created_by=None, payment_method=payment_method)
             
             total_amount = Decimal(0)
@@ -1552,7 +1594,12 @@ def update_order_status(request, order_id):
                     latest_log.save(update_fields=['note'])
             messages.success(request, f'Order {order.tracking_id} updated to "{valid[new_status]}".')
     except ValueError as e:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
         messages.error(request, str(e))
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'status_display': valid[new_status]})
 
     return redirect('orders_dashboard')
 
