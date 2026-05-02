@@ -1,0 +1,138 @@
+{% extends 'public_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}MyStore - Shop the Best Products{% endblock %}
+
+{% block content %}
+<!-- ===== HERO ===== -->
+<section style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #312e81 100%); padding: 100px 40px; text-align: center; color: white; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -50px; right: -50px; width: 400px; height: 400px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+    <div style="position: absolute; bottom: -80px; left: -80px; width: 500px; height: 500px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
+    <div style="position: relative; max-width: 700px; margin: 0 auto;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; margin-bottom: 24px;">
+            🛍️ New Arrivals Every Week
+        </div>
+        <h1 style="font-size: clamp(36px, 6vw, 64px); font-weight: 800; line-height: 1.15; margin-bottom: 20px; letter-spacing: -1px;">
+            Shop the Latest <br><span style="color: #fbbf24;">Products</span> at the<br>Best Prices
+        </h1>
+        <p style="font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 40px; line-height: 1.6;">
+            From electronics to everyday essentials — we've got it all.
+        </p>
+        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'public_products' %}" class="btn btn-primary" style="background: white; color: #6366f1; font-size: 16px; padding: 16px 32px;">
+                <i data-lucide="grid" style="width:18px;height:18px;"></i> Browse All Products
+            </a>
+            <a href="{% url 'public_cart' %}" class="btn" style="background: rgba(255,255,255,0.15); color: white; border: 2px solid rgba(255,255,255,0.4); font-size: 16px; padding: 16px 32px;">
+                <i data-lucide="shopping-cart" style="width:18px;height:18px;"></i> View Cart
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ===== STATS BAR ===== -->
+<section style="background: white; border-bottom: 1px solid #e5e7eb; padding: 24px 40px;">
+    <div style="max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; text-align: center;">
+        <div>
+            <div style="font-size: 28px; font-weight: 800; color: #6366f1;">{{ products|length }}+</div>
+            <div style="font-size: 14px; color: #6b7280; font-weight: 500;">Products Available</div>
+        </div>
+        <div>
+            <div style="font-size: 28px; font-weight: 800; color: #10b981;">Fast</div>
+            <div style="font-size: 14px; color: #6b7280; font-weight: 500;">Order Processing</div>
+        </div>
+        <div>
+            <div style="font-size: 28px; font-weight: 800; color: #f59e0b;">100%</div>
+            <div style="font-size: 14px; color: #6b7280; font-weight: 500;">Genuine Products</div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== FEATURED PRODUCTS ===== -->
+<section style="padding: 64px 40px; max-width: 1200px; margin: 0 auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h2 style="font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Featured Products</h2>
+            <p style="color: #6b7280; margin-top: 6px;">Our most popular picks just for you</p>
+        </div>
+        <a href="{% url 'public_products' %}" class="btn btn-outline">
+            View All <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+        </a>
+    </div>
+
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card">
+            <a href="{% url 'public_product_detail' product.id %}" style="text-decoration: none; color: inherit;">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+                {% else %}
+                    <div class="product-img-placeholder">
+                        <i data-lucide="package" style="width:56px;height:56px;"></i>
+                    </div>
+                {% endif %}
+            </a>
+
+            <div class="product-body">
+                <a href="{% url 'public_product_detail' product.id %}" style="text-decoration: none; color: inherit;">
+                    <div class="product-name" title="{{ product.name }}">{{ product.name }}</div>
+                </a>
+
+                <!-- Star Rating -->
+                <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+                    <div style="display: flex; gap: 2px;">
+                        {% for i in "12345" %}
+                            <i data-lucide="star" style="width: 14px; height: 14px; color: {% if forloop.counter <= product.average_rating %}#fdcb6e{% else %}#dfe6e9{% endif %}; fill: {% if forloop.counter <= product.average_rating %}#fdcb6e{% else %}#dfe6e9{% endif %};"></i>
+                        {% endfor %}
+                    </div>
+                    <span style="font-size: 11px; color: #6b7280; font-weight: 500;">({{ product.review_count }})</span>
+                </div>
+
+                <div class="product-price">Rs {{ product.price|floatformat:0|intcomma }}</div>
+
+                {% if product.stock > 10 %}
+                    <span class="stock-badge in-stock"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> In Stock</span>
+                {% elif product.stock > 0 %}
+                    <span class="stock-badge low-stock"><i data-lucide="alert-circle" style="width:12px;height:12px;"></i> Only {{ product.stock }} left</span>
+                {% else %}
+                    <span class="stock-badge out-stock"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> Out of Stock</span>
+                {% endif %}
+
+                <div class="product-actions">
+                    {% if product.stock > 0 %}
+                    <button class="btn btn-primary" onclick="addToCart('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.price|stringformat:'f' }}', {{ product.stock }})">
+                        <i data-lucide="shopping-cart" style="width:16px;height:16px;"></i> Add to Cart
+                    </button>
+                    {% else %}
+                    <button class="btn" style="background:#f3f4f6;color:#9ca3af;flex:1;justify-content:center;" disabled>Out of Stock</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 80px; color: #9ca3af;">
+            <i data-lucide="package" style="width:64px;height:64px; margin-bottom:16px;"></i>
+            <h3>No products available</h3>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- ===== WHY US ===== -->
+<section style="background: #f8fafc; padding: 64px 40px; border-top: 1px solid #e5e7eb;">
+    <div style="max-width: 1100px; margin: 0 auto; text-align: center;">
+        <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 48px;">Why Shop With Us?</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px;">
+            {% for icon, title, desc in features %}
+            <div style="background: white; padding: 32px 24px; border-radius: 16px; border: 1px solid #e5e7eb; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 40px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+                <div style="width:56px;height:56px;background:#eef2ff;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#6366f1;">
+                    <i data-lucide="{{ icon }}" style="width:28px;height:28px;"></i>
+                </div>
+                <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">{{ title }}</h3>
+                <p style="font-size:14px;color:#6b7280;line-height:1.6;">{{ desc }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

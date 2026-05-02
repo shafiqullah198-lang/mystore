@@ -1,0 +1,74 @@
+{% load permission_extras %}
+
+{% if errors %}
+    <div class="form-errors">
+        {% for error in errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<form method="post" class="role-form">
+    {% csrf_token %}
+
+    <div class="role-name-field">
+        <label for="name">Role Name</label>
+        <input
+            type="text"
+            id="name"
+            name="name"
+            value="{{ role_name }}"
+            placeholder="Manager"
+            required
+        >
+    </div>
+
+    <section class="permission-section">
+        <h2>Permissions</h2>
+        <p>Assign custom permissions to this role</p>
+
+        <div class="permission-card-grid role-permission-grid">
+            {% for group in permission_groups %}
+                <section class="permission-card">
+                    <h2>{{ group.title }}</h2>
+                    <div class="permission-toggles">
+                        {% for permission in group.permissions %}
+                            <div class="perm-item">
+                                <span class="perm-label">
+                                    {{ labels|get_item:permission.codename|default:permission.name }}
+                                </span>
+                                <label class="switch">
+                                    <input
+                                        type="checkbox"
+                                        name="permissions"
+                                        value="{{ permission.id }}"
+                                        {% if permission.id in selected_permission_ids %}checked{% endif %}
+                                    >
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        {% empty %}
+                            <p class="empty-state">No custom permissions found.</p>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
+        </div>
+    </section>
+
+    <button type="submit" class="button primary form-submit">Save Role</button>
+</form>
+
+<script>
+document.querySelectorAll('.perm-item').forEach(item => {
+    item.addEventListener('click', event => {
+        if (event.target.closest('.switch')) {
+            return;
+        }
+        const checkbox = item.querySelector('.switch input');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+        }
+    });
+});
+</script>

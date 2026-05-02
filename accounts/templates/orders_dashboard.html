@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1><i data-lucide="package"></i> Orders</h1>
+        <p>Manage and update order statuses</p>
+    </div>
+</section>
+
+<style>
+/* ── Status colours ── */
+.ob-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.ob-placed      {background:#eef2ff;color:#6366f1;}
+.ob-confirmed   {background:#e0f2fe;color:#0284c7;}
+.ob-processing  {background:#fef3c7;color:#d97706;}
+.ob-shipped     {background:#f5f3ff;color:#7c3aed;}
+.ob-out_for_delivery{background:#fff7ed;color:#c2410c;}
+.ob-delivered   {background:#d1fae5;color:#059669;}
+.ob-cancelled   {background:#fee2e2;color:#dc2626;}
+
+/* ── Page Layout ── */
+.orders-toolbar{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin-bottom:24px;max-width:100%;
+}
+.orders-toolbar select,
+.orders-toolbar input{
+    padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;
+    font-size:13px;background:#fff;color:#374151;outline:none;
+    font-family:inherit;
+}
+
+/* ── Table ── */
+.orders-table th{
+    background:#f9fafb;padding:12px 16px;
+    font-size:12px;text-transform:uppercase;color:#6b7280;
+    font-weight:700;text-align:left;border-bottom:2px solid #e5e7eb;
+}
+.orders-table td{
+    padding:14px 16px;border-bottom:1px solid #f1f5f9;
+    font-size:13px;color:#374151;vertical-align:middle;
+}
+.orders-table tr:hover td{background:#fafbff;}
+.orders-table tr.cancelled-row td{opacity:.6;}
+
+/* ── Inline update form ── */
+.update-form{
+    display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+}
+.update-form select{
+    padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;
+    font-size:12px;background:#fff;color:#374151;outline:none;
+    font-family:inherit;max-width:160px;
+}
+.update-form input[type=text]{
+    padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;
+    font-size:12px;background:#fff;color:#374151;outline:none;
+    width:120px;font-family:inherit;
+}
+.update-form button{
+    padding:7px 14px;background:#6366f1;color:#fff;border:none;
+    border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+    white-space:nowrap;transition:.2s;
+}
+.update-form button:hover{background:#4f46e5;}
+
+/* ── Track link ── */
+.track-link{
+    font-size:12px;font-weight:700;color:#6366f1;text-decoration:none;
+    padding:4px 10px;background:#eef2ff;border-radius:8px;
+}
+.track-link:hover{background:#e0e7ff;}
+
+/* ── Dark mode ── */
+body.dark .orders-table th{background:#2a2a2a;color:#aaa;border-bottom-color:#444;}
+body.dark .orders-table td{border-bottom-color:#333;color:#ccc;}
+body.dark .orders-table tr:hover td{background:#252525;}
+body.dark .orders-toolbar select,
+body.dark .orders-toolbar input,
+body.dark .update-form select,
+body.dark .update-form input{background:#2a2a2a;border-color:#444;color:#eee;}
+
+/* ── Stats strip ── */
+.stats-strip{
+    display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;
+}
+.stat-card{
+    flex:1;min-width:110px;background:#fff;border:1px solid #e5e7eb;
+    border-radius:14px;padding:16px 14px;text-align:center;
+    cursor:pointer;transition:all .2s;text-decoration:none;display:block;
+}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.08);}
+.stat-card.active{border-color:#6366f1;background:#eef2ff;}
+.stat-card.active .stat-num{color:#6366f1;}
+.stat-num{font-size:26px;font-weight:800;color:#1e293b;line-height:1;}
+.stat-label{font-size:11px;color:#64748b;margin-top:6px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.stat-card.total .stat-num{color:#6366f1;}
+
+/* status-specific accent colours */
+.stat-card.s-placed      .stat-num{color:#6366f1;}
+.stat-card.s-confirmed   .stat-num{color:#0284c7;}
+.stat-card.s-processing  .stat-num{color:#d97706;}
+.stat-card.s-shipped     .stat-num{color:#7c3aed;}
+.stat-card.s-out_for_delivery .stat-num{color:#c2410c;}
+.stat-card.s-delivered   .stat-num{color:#059669;}
+.stat-card.s-cancelled   .stat-num{color:#dc2626;}
+
+body.dark .stat-card{background:#1e1e1e;border-color:#333;}
+body.dark .stat-card.active{background:#1e1b4b;border-color:#6366f1;}
+body.dark .stat-num{color:#eee;}
+</style>
+
+<!-- Stats Strip -->
+<div class="stats-strip">
+    <!-- Total Orders -->
+    <a href="{% url 'orders_dashboard' %}"
+       class="stat-card total {% if not status_filter %}active{% endif %}">
+        <div class="stat-num">{{ total_orders }}</div>
+        <div class="stat-label">All Orders</div>
+    </a>
+
+    <!-- Per-status cards -->
+    {% for stat in status_stats %}
+    <a href="?status={{ stat.code }}&q={{ search_query }}&date={{ date_filter }}"
+       class="stat-card s-{{ stat.code }} {% if status_filter == stat.code %}active{% endif %}">
+        <div class="stat-num">{{ stat.count }}</div>
+        <div class="stat-label">{{ stat.label }}</div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Toolbar -->
+<form method="GET" class="orders-toolbar" id="filterForm">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1;">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search ID, Name, Email, Phone…" style="min-width:250px;">
+        
+        <select name="date" onchange="this.form.submit()">
+            <option value="">All Time</option>
+            <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+            <option value="week" {% if date_filter == 'week' %}selected{% endif %}>This Week</option>
+            <option value="month" {% if date_filter == 'month' %}selected{% endif %}>This Month</option>
+        </select>
+        
+        <button type="submit" class="btn-primary" style="padding:10px 20px;border-radius:10px;font-size:13px;">Filter</button>
+    </div>
+    
+    <a href="{% url 'orders_dashboard' %}" style="font-size:13px;color:#ef4444;text-decoration:none;font-weight:600;padding:10px;">Reset</a>
+</form>
+
+<!-- Table -->
+<div class="panel" style="overflow-x:auto;">
+    <table class="data-table orders-table" id="ordersTable">
+        <thead>
+            <tr>
+                <th>Tracking ID</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Invoice</th>
+                <th>Placed</th>
+                <th>Est. Delivery</th>
+                <th>Update Status</th>
+                <th>Track</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for order in orders %}
+        <tr class="{% if order.status == 'cancelled' %}cancelled-row{% endif %}" data-tid="{{ order.tracking_id }}">
+            <td style="font-weight:700;color:#6366f1;font-family:monospace;">{{ order.tracking_id }}</td>
+            <td>
+                <div style="font-weight:600;">{{ order.customer_name|default:"—" }}</div>
+                <div style="font-size:11px;color:#9ca3af;">{{ order.customer_email|default:"" }}</div>
+            </td>
+            <td>
+                <span class="ob-badge ob-{{ order.status }}">
+                    {{ order.get_status_display }}
+                </span>
+            </td>
+            <td>
+                {% if order.invoice %}
+                <a href="/invoice/{{ order.invoice.id }}/" target="_blank"
+                   style="font-size:12px;color:#6366f1;text-decoration:none;">
+                    {{ order.invoice.invoice_number }}
+                </a>
+                {% else %}—{% endif %}
+            </td>
+            <td style="white-space:nowrap;">{{ order.placed_at|date:"d M Y" }}<br>
+                <span style="font-size:11px;color:#9ca3af;">{{ order.placed_at|date:"h:i A" }}</span></td>
+            <td style="font-size:13px;font-weight:600;">
+                {{ order.estimated_delivery|date:"d M Y"|default:"—" }}
+            </td>
+            <td>
+                {% if order.status != 'cancelled' %}
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <form method="POST" action="{% url 'update_order_status' order.id %}" class="update-form">
+                        {% csrf_token %}
+                        <select name="status">
+                            {% for code, label in status_choices %}
+                            <option value="{{ code }}" {% if order.status == code %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="note" placeholder="Note (opt.)">
+                        <button type="submit">Update</button>
+                    </form>
+                    
+                    <form method="POST" action="{% url 'cancel_order' order.id %}" id="cancelForm{{ order.id }}">
+                        {% csrf_token %}
+                        <button type="button" 
+                                onclick="openModal('Refund Order?', 'Are you sure you want to refund this order ({{ order.tracking_id }})? This will restock all items immediately.', 'Confirm Refund', 'danger', () => document.getElementById('cancelForm{{ order.id }}').submit())"
+                                style="width:100%;padding:8px;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:0.2s;"
+                                onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+                            <i data-lucide="rotate-ccw" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> {% if order.status == 'delivered' %}Refund & Restock{% else %}Cancel Order{% endif %}
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <span style="font-size:12px;color:#9ca3af;font-style:italic;">
+                    Cancelled
+                </span>
+                {% endif %}
+            </td>
+            <td>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <a href="{% url 'track_order' order.tracking_id %}" target="_blank" class="track-link" style="text-align:center;">
+                        🔍 Track
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8" style="text-align:center;padding:40px;color:#9ca3af;">
+                <i data-lucide="inbox" style="width:40px;height:40px;display:block;margin:0 auto 12px;"></i>
+                No orders found.
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function filterTable(){
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#ordersTable tbody tr').forEach(row => {
+        const tid = (row.dataset.tid || '').toLowerCase();
+        row.style.display = tid.includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

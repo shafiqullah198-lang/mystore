@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="panel">
+    <h2>Edit User</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Username -->
+        <label>Username</label>
+        <input type="text" name="username" value="{{ user_obj.username }}" required>
+
+        <!-- Current Image -->
+        <div class="image-preview">
+            {% if user_obj.profile and user_obj.profile.image %}
+                <img src="{{ user_obj.profile.image.url }}" class="avatar-large">
+            {% else %}
+                <div class="avatar-large placeholder">👤</div>
+            {% endif %}
+        </div>
+
+        <!-- Upload New Image -->
+        <label>Change Profile Image</label>
+        <input type="file" name="image">
+
+        <!-- Status -->
+        <label>
+            <input type="checkbox" name="is_active" {% if user_obj.is_active %}checked{% endif %}>
+            Active
+        </label>
+
+        <label>
+            <input type="checkbox" name="is_staff" {% if user_obj.is_staff %}checked{% endif %}>
+            Staff
+        </label>
+
+        <button type="submit" class="button primary">Update User</button>
+    </form>
+</div>
+{% endblock %}

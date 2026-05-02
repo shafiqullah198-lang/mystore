@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="permission-page">
+    <form id="permissionForm">
+        {% csrf_token %}
+
+        <section class="permission-manager">
+            <div class="permission-header">
+                <div>
+                    <h1>Permissions</h1>
+                    <p>Select a user and manage custom access controls.</p>
+                </div>
+            </div>
+
+            <div class="permission-toolbar">
+                <div class="permission-user-field">
+                    <label for="userSelect">User</label>
+                    <div class="dropdown">
+    <div class="dropdown-selected" onclick="toggleDropdown()">
+        Select User
+    </div>
+
+    <div class="dropdown-list" id="dropdownList">
+        {% for user in users %}
+        <div class="dropdown-item"
+             onclick="selectUser({{ user.id }}, '{{ user.username }}', '{% if user.profile.image %}{{ user.profile.image.url }}{% endif %}')">
+
+            {% if user.profile.image %}
+                <img src="{{ user.profile.image.url }}" class="avatar-sm">
+            {% else %}
+                <div class="avatar-sm placeholder">👤</div>
+            {% endif %}
+
+            <span>{{ user.username }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<input type="hidden" id="userSelect">
+                </div>
+            </div>
+
+            <div id="permissionStatus" class="permission-message"></div>
+            <div id="permissionContainer" class="permission-grid">
+                <div class="permission-empty-state">Select a user to load permissions.</div>
+            </div>
+
+        </section>
+    </form>
+</div>
+
+<script>
+    const userSelect = document.getElementById('userSelect');
+    const permissionForm = document.getElementById('permissionForm');
+    const permissionContainer = document.getElementById('permissionContainer');
+    const permissionStatus = document.getElementById('permissionStatus');
+ 
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    function setStatus(message, type = '') {
+        permissionStatus.textContent = message;
+        permissionStatus.className = `permission-message ${type}`;
+    }
+
+    function createToggle(permission) {
+        const item = document.createElement('div');
+        item.className = 'perm-item';
+
+        const text = document.createElement('span');
+        text.className = 'perm-label';
+        text.textContent = permission.label || permission.name;
+
+        const switchLabel = document.createElement('label');
+        switchLabel.className = 'switch';
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'permissions';
+        input.value = permission.id;
+        input.checked = Boolean(permission.assigned);
+       input.addEventListener('change', () => {
+    autoSavePermissions();
+});
+
+        const slider = document.createElement('span');
+        slider.className = 'slider';
+
+        switchLabel.append(input, slider);
+        item.append(text, switchLabel);
+
+        return item;
+    }
+
+    function renderPermissions(groups) {
+        permissionContainer.innerHTML = '';
+
+        groups.forEach(group => {
+            const card = document.createElement('section');
+            card.className = 'permission-column';
+
+            const title = document.createElement('h2');
+            title.textContent = group.title;
+
+            const toggles = document.createElement('div');
+            toggles.className = 'permission-toggles';
+
+            if (group.permissions.length) {
+                group.permissions.forEach(permission => {
+                    toggles.appendChild(createToggle(permission));
+                });
+            } else {
+                const empty = document.createElement('p');
+                empty.className = 'empty-state';
+                empty.textContent = 'No custom permissions found.';
+                toggles.appendChild(empty);
+            }
+
+            card.append(title, toggles);
+            permissionContainer.appendChild(card);
+        });
+    }
+
+    async function loadPermissions(userId) {
+        if (!userId) {
+            permissionContainer.innerHTML = '<div class="permission-empty-state">Select a user to load permissions.</div>';
+            
+            setStatus('');
+            return;
+        }
+
+    
+        permissionContainer.innerHTML = '';
+        setStatus('Loading permissions...');
+
+        const response = await fetch(`/permissions/${userId}/json/`, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+        });
+
+        if (!response.ok) {
+            setStatus('Could not load permissions.', 'error');
+            return;
+        }
+
+        const data = await response.json();
+        renderPermissions(data.groups);
+        
+        setStatus('');
+    }
+async function autoSavePermissions() {
+    const userId = userSelect.value;
+
+    const selected = [];
+    permissionContainer.querySelectorAll('.switch input:checked').forEach(cb => {
+        selected.push(cb.value);
+    });
+
+    try {
+        await fetch(`/permissions/${userId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ permissions: selected }),
+        });
+
+        setStatus('Saved', 'success');
+    } catch {
+        setStatus('Error saving', 'error');
+    }
+}
+function toggleDropdown() {
+    document.getElementById("dropdownList").classList.toggle("show");
+}
+
+function selectUser(id, name, image) {
+    document.querySelector(".dropdown-selected").innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+            ${image ? `<img src="${image}" class="avatar-sm">` : "👤"}
+            <span>${name}</span>
+        </div>
+    `;
+
+    document.getElementById("dropdownList").classList.remove("show");
+
+    document.getElementById("userSelect").value = id;
+
+    loadPermissions(id);
+}
+   userSelect.addEventListener('change', () => {
+    loadPermissions(userSelect.value);
+});
+    
+</script>
+{% endblock %}

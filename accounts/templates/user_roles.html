@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>User Roles</h1>
+        <p>Assign one or more roles to {{ user_obj.username }}</p>
+    </div>
+    <a href="{% url 'user_list' %}" class="button secondary">Back to Users</a>
+</section>
+
+<div class="panel form-panel role-panel">
+    {% if errors %}
+        <div class="form-errors">
+            {% for error in errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <section class="permission-section">
+            <h2>Roles</h2>
+            <p>Users can belong to multiple roles</p>
+
+            <div class="role-toggle-list">
+                {% for role in roles %}
+                    <div class="perm-item role-item">
+                        <span class="perm-label">{{ role.name }}</span>
+                        <label class="switch">
+                            <input
+                                type="checkbox"
+                                name="roles"
+                                value="{{ role.id }}"
+                                {% if role.id in selected_role_ids %}checked{% endif %}
+                            >
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">No roles available. Create a role first.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <button type="submit" class="button primary form-submit">Save Roles</button>
+    </form>
+</div>
+
+<script>
+document.querySelectorAll('.role-item').forEach(item => {
+    item.addEventListener('click', event => {
+        if (event.target.closest('.switch')) {
+            return;
+        }
+        const checkbox = item.querySelector('.switch input');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+        }
+    });
+});
+</script>
+{% endblock %}

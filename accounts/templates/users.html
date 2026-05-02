@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Users</h1>
+        <p>Create users and review assigned roles</p>
+    </div>
+    <a href="{% url 'add_user' %}" class="button primary">Add User</a>
+</section>
+
+<div class="panel">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Staff</th>
+                <th>Superuser</th>
+                <th>Status</th>
+                <th class="table-actions">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user_obj in users %}
+                <tr>
+                   <td>
+    <div class="user-row">
+
+        {% if user_obj.profile and user_obj.profile.image %}
+            <img src="{{ user_obj.profile.image.url }}" class="avatar">
+        {% else %}
+            <div class="avatar placeholder">👤</div>
+        {% endif %}
+
+        <span>{{ user_obj.username|default:"No Name" }}</span>
+
+    </div>
+</td>
+                    <td>
+                        {% for group in user_obj.groups.all %}
+                            <span class="status-pill is-muted">{{ group.name }}</span>
+                        {% empty %}
+                            <span class="muted">No role</span>
+                        {% endfor %}
+                    </td>
+                    <td>{% if user_obj.is_staff %}Yes{% else %}No{% endif %}</td>
+                    <td>{% if user_obj.is_superuser %}Yes{% else %}No{% endif %}</td>
+                    <td>
+                        <span class="status-pill {% if user_obj.is_active %}is-active{% else %}is-muted{% endif %}">
+                            {% if user_obj.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td class="table-actions">
+                        <a href="{% url 'user_roles' user_obj.id %}" class="button secondary">Roles</a>
+                        <a href="{% url 'edit_user' user_obj.id %}" class="button">Edit</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" class="empty-state">No users found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

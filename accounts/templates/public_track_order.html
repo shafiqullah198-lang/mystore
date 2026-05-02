@@ -1,0 +1,416 @@
+{% extends 'public_base.html' %}
+{% block title %}Track Order{% if order %} — {{ order.tracking_id }}{% endif %} - MyStore{% endblock %}
+
+{% block extra_head %}
+<style>
+:root{
+    --done:#10b981; --current:#6366f1; --pending:#cbd5e1;
+    --cancelled:#ef4444; --bg:#f8fafc; --card:#fff;
+    --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+}
+
+/* ===== HERO SEARCH ===== */
+.track-hero{
+    background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4c1d95 100%);
+    padding:72px 24px 100px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+}
+.track-hero::before{
+    content:'';position:absolute;top:-100px;right:-100px;
+    width:350px;height:350px;border-radius:50%;
+    background:rgba(255,255,255,0.04);
+}
+.track-hero::after{
+    content:'';position:absolute;bottom:-80px;left:-80px;
+    width:280px;height:280px;border-radius:50%;
+    background:rgba(255,255,255,0.03);
+}
+.track-hero h1{
+    font-size:38px;font-weight:800;color:#fff;
+    margin-bottom:10px;position:relative;z-index:1;
+}
+.track-hero p{color:rgba(255,255,255,.65);font-size:16px;margin-bottom:32px;position:relative;z-index:1;}
+.search-bar{
+    display:flex;max-width:500px;margin:0 auto;
+    background:#fff;border-radius:14px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+    overflow:hidden;position:relative;z-index:1;
+}
+.search-bar input{
+    flex:1;padding:18px 20px;border:none;outline:none;
+    font-size:15px;font-weight:500;color:var(--text);font-family:inherit;
+}
+.search-bar button{
+    padding:0 28px;background:#6366f1;color:#fff;
+    border:none;font-weight:700;font-size:15px;cursor:pointer;
+    transition:background .2s;
+}
+.search-bar button:hover{background:#4f46e5;}
+
+/* ===== RESULT CARD ===== */
+.track-wrapper{
+    max-width:820px;margin:32px auto 60px;padding:0 20px;
+}
+.result-card{
+    background:var(--card);border-radius:20px;
+    box-shadow:0 8px 40px rgba(0,0,0,.09);
+    border:1px solid var(--border);overflow:hidden;
+}
+.result-header{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:28px 32px;border-bottom:1px solid var(--border);
+    flex-wrap:wrap;gap:16px;
+}
+.result-header .tid{font-size:22px;font-weight:800;color:var(--text);}
+.result-header .sub{font-size:13px;color:var(--muted);margin-top:3px;}
+
+/* Status badge */
+.status-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 18px;border-radius:30px;font-size:14px;font-weight:700;
+}
+.badge-placed      {background:#eef2ff;color:#6366f1;}
+.badge-confirmed   {background:#e0f2fe;color:#0284c7;}
+.badge-processing  {background:#fef3c7;color:#d97706;}
+.badge-shipped     {background:#f5f3ff;color:#7c3aed;}
+.badge-out_for_delivery{background:#fff7ed;color:#c2410c;}
+.badge-delivered   {background:#d1fae5;color:#059669;}
+.badge-cancelled   {background:#fee2e2;color:#dc2626;}
+.badge-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+
+/* ===== TIMELINE ===== */
+.timeline-section{padding:36px 32px;}
+.timeline{position:relative;padding-left:32px;}
+.timeline::before{
+    content:'';position:absolute;left:14px;top:0;bottom:0;
+    width:2px;background:var(--border);border-radius:2px;
+}
+
+.tl-step{
+    position:relative;display:flex;align-items:flex-start;
+    gap:20px;padding-bottom:32px;
+}
+.tl-step:last-child{padding-bottom:0;}
+
+.tl-icon{
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;position:relative;z-index:1;
+    flex-shrink:0;margin-left:-14px;
+    border:2px solid transparent;transition:all .4s;
+}
+.tl-icon.done{background:var(--done);color:#fff;border-color:var(--done);}
+.tl-icon.current{
+    background:#fff;color:var(--current);border-color:var(--current);
+    box-shadow:0 0 0 4px rgba(99,102,241,.15);
+    animation:pulse-ring 2s ease-in-out infinite;
+}
+.tl-icon.pending{background:#f1f5f9;color:#94a3b8;border-color:var(--border);}
+.tl-icon.cancelled{background:#fee2e2;color:#ef4444;border-color:#ef4444;}
+
+@keyframes pulse-ring{
+    0%,100%{box-shadow:0 0 0 4px rgba(99,102,241,.15);}
+    50%{box-shadow:0 0 0 8px rgba(99,102,241,.05);}
+}
+
+/* Line colouring */
+.tl-step.done::before,
+.tl-step.current::before{
+    content:'';position:absolute;left:14px;top:30px;bottom:-2px;
+    width:2px;background:var(--done);z-index:0;
+    transform:translateX(-50%);
+}
+
+.tl-body{flex:1;padding-top:4px;}
+.tl-label{font-size:15px;font-weight:700;color:var(--text);}
+.tl-label.pending{color:var(--muted);}
+.tl-time{font-size:12px;color:var(--muted);margin-top:3px;}
+
+/* Cancelled banner */
+.cancelled-banner{
+    margin:0 32px 24px;padding:14px 18px;
+    background:#fee2e2;border-radius:12px;border:1px solid #fca5a5;
+    color:#dc2626;font-size:14px;font-weight:600;
+    display:flex;align-items:center;gap:10px;
+}
+
+/* ===== INFO GRID ===== */
+.info-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:0;border-top:1px solid var(--border);
+}
+.info-cell{padding:24px 32px;border-right:1px solid var(--border);}
+.info-cell:last-child{border-right:none;}
+.info-label{font-size:11px;text-transform:uppercase;font-weight:700;
+    color:var(--muted);letter-spacing:.6px;margin-bottom:6px;}
+.info-value{font-size:15px;font-weight:700;color:var(--text);}
+.info-value a{color:#6366f1;text-decoration:none;}
+
+/* ===== REFRESH ===== */
+.refresh-bar{
+    background:#f8fafc;padding:14px 32px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid var(--border);flex-wrap:wrap;gap:10px;
+}
+.refresh-info{font-size:13px;color:var(--muted);}
+.refresh-btn{
+    padding:8px 18px;background:#6366f1;color:#fff;
+    border:none;border-radius:8px;font-size:13px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;gap:6px;
+    transition:all .2s;
+}
+.refresh-btn:hover{background:#4f46e5;}
+.spinner-sm{
+    width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#fff;border-radius:50%;
+    animation:spin .7s linear infinite;display:none;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ===== ERROR ===== */
+.error-card{
+    text-align:center;padding:64px 32px;
+}
+.error-icon{font-size:60px;margin-bottom:16px;}
+.error-card h2{font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;}
+.error-card p{color:var(--muted);font-size:15px;}
+
+/* Dark mode */
+body.dark .result-card{background:#1e1e1e;border-color:#333;}
+body.dark .result-header{border-color:#333;}
+body.dark .result-header .tid{color:#eee;}
+body.dark .timeline::before{background:#333;}
+body.dark .tl-icon.pending{background:#2a2a2a;border-color:#444;color:#666;}
+body.dark .tl-label{color:#eee;}
+body.dark .tl-label.pending{color:#666;}
+body.dark .info-grid{border-top-color:#333;}
+body.dark .info-cell{border-right-color:#333;}
+body.dark .info-label{color:#888;}
+body.dark .info-value{color:#eee;}
+body.dark .refresh-bar{background:#1a1a1a;border-top-color:#333;}
+body.dark .search-bar input{background:#1e1e1e;color:#eee;}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Search -->
+<div class="track-hero">
+    <h1>📦 Track Your Order</h1>
+    <p>Enter your tracking ID to see the latest status of your delivery</p>
+    <form class="search-bar" action="" method="GET" id="trackSearchForm">
+        <input type="text" name="" id="trackInput"
+               value="{{ tracking_id|default:'' }}"
+               placeholder="e.g. TRK-AB12CD34EF"
+               autocomplete="off">
+        <button type="submit">Track →</button>
+    </form>
+</div>
+
+<div class="track-wrapper">
+
+{% if error %}
+<div class="result-card">
+    <div class="error-card">
+        <div class="error-icon">🔍</div>
+        <h2>Order Not Found</h2>
+        <p>{{ error }}</p>
+        <p style="margin-top:12px;font-size:13px;color:#94a3b8;">
+            Double-check your tracking ID and try again. It was sent to you in your order confirmation email.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+{% if order %}
+<div class="result-card" id="trackCard">
+
+    <!-- Header -->
+    <div class="result-header">
+        <div>
+            <div class="tid">{{ order.tracking_id }}</div>
+            <div class="sub">
+                Placed on {{ order.placed_at|date:"d M Y, h:i A" }}
+                {% if order.customer_name %} &nbsp;·&nbsp; {{ order.customer_name }}{% endif %}
+            </div>
+        </div>
+        <span class="status-badge badge-{{ order.status }}" id="statusBadge">
+            <span class="badge-dot"></span>
+            <span id="statusText">{{ order.get_status_display }}</span>
+        </span>
+    </div>
+
+    <!-- Cancelled Banner -->
+    {% if order.status == 'cancelled' %}
+    <div class="cancelled-banner" id="cancelledBanner">
+        ❌ This order has been cancelled{% if order.cancelled_at %} on {{ order.cancelled_at|date:"d M Y" }}{% endif %}.
+    </div>
+    {% else %}
+    <div class="cancelled-banner" id="cancelledBanner" style="display:none;"></div>
+    {% endif %}
+
+    <!-- Timeline -->
+    <div class="timeline-section">
+        <div class="timeline" id="timeline">
+            {% for step in order.get_timeline %}
+            <div class="tl-step {{ step.state }}" data-status="{{ step.status }}">
+                <div class="tl-icon {{ step.state }}">
+                    {% if step.state == 'done' %}✓
+                    {% elif step.state == 'current' %}⏳
+                    {% elif step.state == 'cancelled' %}✕
+                    {% else %}○{% endif %}
+                </div>
+                <div class="tl-body">
+                    <div class="tl-label {% if step.state == 'pending' or step.state == 'cancelled' %}pending{% endif %}">
+                        {{ step.label }}
+                    </div>
+                    <div class="tl-time">
+                        {% if step.timestamp %}{{ step.timestamp }}
+                        {% elif step.state == 'current' %}In progress…
+                        {% elif step.state == 'pending' %}Pending
+                        {% elif step.state == 'cancelled' %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+        <div class="info-cell">
+            <div class="info-label">Estimated Delivery</div>
+            <div class="info-value" id="estDelivery">
+                {% if order.estimated_delivery %}
+                    {{ order.estimated_delivery|date:"d M Y" }}
+                {% else %}—{% endif %}
+            </div>
+        </div>
+        {% if order.invoice %}
+        <div class="info-cell">
+            <div class="info-label">Invoice</div>
+            <div class="info-value">
+                <a href="/invoice/{{ order.invoice.id }}/" target="_blank">{{ order.invoice.invoice_number }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if order.courier_name %}
+        <div class="info-cell">
+            <div class="info-label">Courier</div>
+            <div class="info-value">{{ order.courier_name }}</div>
+        </div>
+        {% endif %}
+        {% if order.courier_tracking %}
+        <div class="info-cell">
+            <div class="info-label">Courier Tracking #</div>
+            <div class="info-value">{{ order.courier_tracking }}</div>
+        </div>
+        {% endif %}
+        <div class="info-cell">
+            <div class="info-label">Last Updated</div>
+            <div class="info-value" id="lastUpdated">{{ order.updated_at|date:"d M Y, h:i A" }}</div>
+        </div>
+    </div>
+
+    <!-- Refresh Bar -->
+    <div class="refresh-bar">
+        <span class="refresh-info" id="refreshInfo">Auto-refreshing every 30 seconds</span>
+        <div style="display:flex;gap:12px;align-items:center;">
+            {% if order.status == 'delivered' %}
+            <form method="POST" action="{% url 'public_refund_order' order.tracking_id %}" id="publicRefundForm">
+                {% csrf_token %}
+                <button type="button" class="refresh-btn" style="background:var(--danger);"
+                        onclick="openModal('Request Refund?', 'Are you sure you want to refund this order? Your items will be returned to our stock, and you will need to return the physical products to our store.', 'Confirm Refund', 'danger', () => document.getElementById('publicRefundForm').submit())">
+                    <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
+                    <span>Refund & Return</span>
+                </button>
+            </form>
+            {% endif %}
+            
+            <button class="refresh-btn" onclick="refreshStatus()">
+                <div class="spinner-sm" id="spinner"></div>
+                <span>↻ Refresh Now</span>
+            </button>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
+</div><!-- track-wrapper -->
+
+<!-- Handle search form redirect -->
+<script>
+document.getElementById('trackSearchForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const val = document.getElementById('trackInput').value.trim().toUpperCase();
+    if(val) window.location.href = '/track/' + val + '/';
+});
+
+{% if order %}
+const TRACKING_ID = "{{ order.tracking_id }}";
+const API_URL = `/api/track/${TRACKING_ID}/`;
+
+const stateIcon  = {done:'✓', current:'⏳', pending:'○', cancelled:'✕'};
+const stateClass = ['done','current','pending','cancelled'];
+
+function refreshStatus(){
+    const spinner = document.getElementById('spinner');
+    spinner.style.display = 'block';
+    document.getElementById('refreshInfo').textContent = 'Refreshing…';
+
+    fetch(API_URL)
+    .then(r => r.json())
+    .then(data => {
+        // Update badge
+        const badge = document.getElementById('statusBadge');
+        badge.className = `status-badge badge-${data.status}`;
+        document.getElementById('statusText').textContent = data.status_display;
+
+        // Cancelled banner
+        const banner = document.getElementById('cancelledBanner');
+        if(data.cancelled){
+            banner.style.display = 'flex';
+            banner.textContent = `❌ This order has been cancelled${data.cancelled_at ? ' on ' + data.cancelled_at : ''}.`;
+        } else {
+            banner.style.display = 'none';
+        }
+
+        // Rebuild timeline
+        const tl = document.getElementById('timeline');
+        tl.innerHTML = '';
+        data.pipeline.forEach(step => {
+            const div = document.createElement('div');
+            div.className = `tl-step ${step.state}`;
+            div.dataset.status = step.status;
+            div.innerHTML = `
+                <div class="tl-icon ${step.state}">${stateIcon[step.state] || '○'}</div>
+                <div class="tl-body">
+                    <div class="tl-label ${step.state === 'pending' || step.state === 'cancelled' ? 'pending' : ''}">
+                        ${step.label}
+                    </div>
+                    <div class="tl-time">${step.timestamp || (step.state === 'current' ? 'In progress…' : step.state === 'pending' ? 'Pending' : '—')}</div>
+                </div>`;
+            tl.appendChild(div);
+        });
+
+        // Info cells
+        if(data.estimated_delivery)
+            document.getElementById('estDelivery').textContent = data.estimated_delivery;
+        document.getElementById('lastUpdated').textContent = data.updated_at || '—';
+
+        spinner.style.display = 'none';
+        document.getElementById('refreshInfo').textContent = 'Auto-refreshing every 30 seconds · Last updated: ' + new Date().toLocaleTimeString();
+    })
+    .catch(() => {
+        spinner.style.display = 'none';
+        document.getElementById('refreshInfo').textContent = 'Refresh failed — check your connection.';
+    });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(refreshStatus, 30000);
+{% endif %}
+</script>
+{% endblock %}

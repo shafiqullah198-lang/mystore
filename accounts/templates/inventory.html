@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Inventory</h1>
+        <p>Manage available stock</p>
+    </div>
+</section>
+<form id="csrf-form">
+    {% csrf_token %}
+</form>
+
+<div class="panel">
+    <table class="data-table">
+
+        <!-- ✅ HEADER -->
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <!-- ✅ SINGLE LOOP ONLY -->
+     <tbody>
+{% for product in products %}
+<tr>
+
+    <!-- PRODUCT -->
+    <td class="product-cell">
+        <div class="product-name">
+            {{ product.name }}
+        </div>
+    </td>
+
+    <!-- STOCK -->
+    <td class="stock-cell">
+        <span id="stock-{{ product.id }}" class="stock-number">
+            {{ product.stock }}
+        </span>
+    </td>
+
+    <!-- STATUS -->
+    <td class="status-cell">
+        {% if product.stock > 10 %}
+            <span class="badge success">In Stock</span>
+        {% elif product.stock > 0 %}
+            <span class="badge warning">Low</span>
+        {% else %}
+            <span class="badge danger">Out</span>
+        {% endif %}
+    </td>
+
+    <!-- ACTIONS -->
+    <td class="actions-cell">
+    {% if perms.accounts.edit_stock %}
+    <div class="stock-control">
+
+        <button type="button"
+            onclick="changeStock({{ product.id }}, 'minus')"
+            class="circle-btn red">−</button>
+
+        <input type="number"
+            id="qty-{{ product.id }}"
+            value="1"
+            min="1"
+            class="qty-input">
+
+        <button type="button"
+            onclick="changeStock({{ product.id }}, 'add')"
+            class="circle-btn green">+</button>
+
+    </div>
+    {% endif %}
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</div>
+<script>
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function changeStock(productId, action) {
+    let qty = document.getElementById(`qty-${productId}`).value;
+
+    if (!qty || qty <= 0) {
+        alert("Invalid quantity");
+        return;
+    }
+
+   fetch(`/stock/edit/${productId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(),
+        },
+        body: JSON.stringify({
+            quantity: qty,
+            action: action
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

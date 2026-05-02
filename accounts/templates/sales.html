@@ -1,0 +1,658 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<section class="page-header">
+    <!-- Add jQuery and Select2 -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <div>
+        <h1><i data-lucide="shopping-cart"></i> Point of Sale</h1>
+        <p>Sell multiple products and generate invoices</p>
+    </div>
+</section>
+
+<div class="pos-container">
+    <!-- Left: Add Item Form -->
+    <div class="pos-form-section">
+        <div class="sales-form-card">
+            <div class="form-header">
+                <h2>Add Product</h2>
+                <p>Select a product to add to cart</p>
+            </div>
+
+            <form id="saleForm" class="sale-form">
+                {% csrf_token %}
+
+                <!-- Product Selection -->
+                <div class="form-group">
+                    <label for="productSelect" class="form-label">Product <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i data-lucide="box" class="input-icon"></i>
+                        <select id="productSelect" class="form-control" required>
+                            <option value="">-- Select a Product --</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" 
+                                        data-price="{{ product.price }}"
+                                        data-buying-price="{{ product.buying_price }}"
+                                        data-stock="{{ product.stock }}"
+                                        data-name="{{ product.name }}">
+                                    {{ product.name }} 
+                                    {% if product.stock > 0 %}
+                                        <span>(Stock: {{ product.stock }})</span>
+                                    {% else %}
+                                        <span>(Out of Stock)</span>
+                                    {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="stockInfo" class="stock-info" style="display: none;">
+                        <span id="stockLabel"></span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <!-- Selling Price -->
+                    <div class="form-group half">
+                        <label for="price" class="form-label">Selling Price (Rs) <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="tag" class="input-icon"></i>
+                            <input type="number" id="price" class="form-control" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="form-group half">
+                        <label for="quantity" class="form-label">Quantity <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i data-lucide="hash" class="input-icon"></i>
+                            <input type="number" id="quantity" class="form-control" placeholder="1" value="1" min="1" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discount -->
+                <div class="form-group">
+                    <label for="discount" class="form-label">Discount on Item (Rs)</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="percent" class="input-icon"></i>
+                        <input type="number" id="discount" class="form-control" placeholder="0.00" value="0" step="0.01" min="0">
+                    </div>
+                </div>
+
+                <!-- Message -->
+                <div id="message" class="message-box"></div>
+
+                <!-- Submit Button -->
+                <button type="button" onclick="addToCart()" class="btn btn-secondary btn-sell">
+                    <i data-lucide="plus"></i> Add to Cart
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Cart Summary -->
+    <div class="pos-cart-section">
+        <div class="sales-form-card cart-card">
+            <div class="form-header">
+                <h2>Current Cart</h2>
+                <p>Review items before checkout</p>
+            </div>
+
+            <div class="cart-table-wrapper">
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartBody">
+                        <tr id="emptyCartRow">
+                            <td colspan="5" class="empty-cart-msg">Your cart is empty</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total Calculation -->
+            <div class="total-section">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span id="cartSubtotal">Rs 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Discount:</span>
+                    <span id="cartDiscount">Rs 0.00</span>
+                </div>
+                <div class="total-row total-final">
+                    <span>Total:</span>
+                    <span id="cartTotal" class="total-amount">Rs 0.00</span>
+                </div>
+            </div>
+
+            <!-- Payment Method Selection -->
+            <div class="form-group" style="margin-top: 10px;">
+                <label class="form-label">Payment Method</label>
+                <div class="payment-method-selector">
+                    <label class="method-option">
+                        <input type="radio" name="payment_method" value="cash" checked>
+                        <div class="method-box">
+                            <i data-lucide="banknote"></i>
+                            <span>Cash</span>
+                        </div>
+                    </label>
+                    <label class="method-option">
+                        <input type="radio" name="payment_method" value="bank">
+                        <div class="method-box">
+                            <i data-lucide="building-2"></i>
+                            <span>Bank</span>
+                        </div>
+                    </label>
+                    <label class="method-option">
+                        <input type="radio" name="payment_method" value="card">
+                        <div class="method-box">
+                            <i data-lucide="credit-card"></i>
+                            <span>Card</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Message for checkout -->
+            <div id="checkoutMessage" class="message-box"></div>
+
+            <!-- Checkout Button -->
+            <button type="button" id="checkoutBtn" onclick="checkout()" class="btn btn-primary btn-sell" disabled>
+                <i data-lucide="shopping-bag"></i> Complete Checkout
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Base Styles */
+.pos-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+    .pos-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sales-form-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid #e5e7eb;
+}
+
+.cart-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.form-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.form-header h2 { margin: 0; font-size: 20px; color: #17202a; }
+.form-header p { margin: 4px 0 0 0; font-size: 14px; color: #757575; }
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+.form-row .half { flex: 1; }
+
+.form-group { margin-bottom: 16px; }
+.form-label {
+    display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: #17202a;
+}
+.required { color: #e74c3c; }
+
+.input-wrapper { position: relative; display: flex; align-items: center; }
+.input-icon {
+    position: absolute; left: 12px; color: #999; pointer-events: none; width: 18px; height: 18px; z-index: 10;
+}
+
+.form-control {
+    width: 100%; padding: 10px 12px 10px 40px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.2s;
+}
+.form-control:focus {
+    outline: none; border-color: #00b894; box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1); background: #f9fdfb;
+}
+
+.stock-info {
+    margin-top: 8px; padding: 8px 12px; background: #e8f5e9; border-radius: 6px; font-size: 13px; color: #2e7d32;
+}
+
+/* Cart Table Styles */
+.cart-table-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    max-height: 400px;
+}
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.cart-table th {
+    background: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    border-bottom: 2px solid #e5e7eb;
+}
+.cart-table td {
+    padding: 12px;
+    font-size: 14px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+.cart-table tbody tr:last-child td { border-bottom: none; }
+.empty-cart-msg {
+    text-align: center; padding: 40px !important; color: #9ca3af; font-style: italic;
+}
+.remove-btn {
+    background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; border-radius: 4px; transition: 0.2s;
+}
+.remove-btn:hover { background: #fee2e2; }
+
+/* Totals Styles */
+.total-section {
+    background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 20px; border: 1px solid #e9ecef;
+}
+.total-row {
+    display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 14px; color: #666;
+}
+.total-row span:last-child { font-weight: 500; color: #333; }
+.total-final {
+    border-top: 2px solid #ddd; padding-top: 12px; margin-top: 8px; font-size: 16px;
+}
+.total-amount { font-size: 20px; font-weight: 700; color: #00b894; }
+
+.btn-sell {
+    width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; border: none;
+}
+.btn-primary { background: #00b894; color: white; }
+.btn-primary:hover:not(:disabled) { background: #00a080; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3); }
+.btn-primary:disabled { background: #a7f3d0; cursor: not-allowed; }
+
+.btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+.btn-secondary:hover { background: #e5e7eb; }
+
+.message-box {
+    padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; display: none;
+}
+.message-box.success { display: block; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.message-box.error { display: block; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+/* Select2 Custom Styles */
+.select2-container { width: 100% !important; }
+.select2-container .select2-selection--single { height: 42px; border: 1px solid #ddd; border-radius: 8px; }
+.select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 40px; padding-left: 36px; color: #333; }
+.select2-container--default .select2-selection--single .select2-selection__arrow { height: 40px; }
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #00b894; outline: 0; box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
+}
+
+/* Dark Mode Overrides */
+body.dark .sales-form-card { background: #1e1e1e; border-color: #333; }
+body.dark .form-header h2, body.dark .form-label, body.dark .cart-table th { color: #eee; }
+body.dark .form-header p { color: #aaa; }
+body.dark .form-control { background: #2a2a2a; border-color: #444; color: #eee; }
+body.dark .form-control:focus { background: #333; }
+body.dark .stock-info { background: #064e3b; color: #34d399; }
+body.dark .cart-table-wrapper { border-color: #444; }
+body.dark .cart-table th { background: #2a2a2a; border-bottom-color: #444; }
+body.dark .cart-table td { border-bottom-color: #444; color: #ccc; }
+body.dark .total-section { background: #2a2a2a; border-color: #444; }
+body.dark .total-row { color: #aaa; }
+body.dark .total-row span:last-child { color: #eee; }
+body.dark .total-final { border-top-color: #444; }
+body.dark .btn-secondary { background: #374151; color: #eee; border-color: #4b5563; }
+body.dark .btn-secondary:hover { background: #4b5563; }
+body.dark .select2-container .select2-selection--single { background-color: #2a2a2a; border-color: #444; }
+body.dark .select2-container--default .select2-selection--single .select2-selection__rendered { color: #eee; }
+body.dark .select2-dropdown { background-color: #2a2a2a; border-color: #444; }
+body.dark .select2-container--default .select2-results__option--selected { background-color: #444; }
+body.dark .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background-color: #00b894; }
+body.dark .select2-search--dropdown .select2-search__field { background-color: #333; color: #eee; border-color: #555; }
+
+/* Payment Method Selector */
+.payment-method-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.method-option {
+    cursor: pointer;
+}
+.method-option input {
+    display: none;
+}
+.method-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    transition: all 0.2s;
+}
+.method-box i {
+    width: 18px;
+    height: 18px;
+    margin-bottom: 4px;
+    color: #666;
+}
+.method-box span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #444;
+}
+.method-option input:checked + .method-box {
+    border-color: #00b894;
+    background: #e8f5e9;
+}
+.method-option input:checked + .method-box i,
+.method-option input:checked + .method-box span {
+    color: #00b894;
+}
+body.dark .method-box {
+    background: #2a2a2a;
+    border-color: #444;
+}
+body.dark .method-box span { color: #ccc; }
+body.dark .method-option input:checked + .method-box {
+    background: #064e3b;
+    border-color: #00b894;
+}
+</style>
+
+<script>
+let cart = [];
+
+const select = document.getElementById("productSelect");
+const priceInput = document.getElementById("price");
+const qtyInput = document.getElementById("quantity");
+const discountInput = document.getElementById("discount");
+const stockInfo = document.getElementById("stockInfo");
+const stockLabel = document.getElementById("stockLabel");
+const messageBox = document.getElementById("message");
+const checkoutMessage = document.getElementById("checkoutMessage");
+const cartBody = document.getElementById("cartBody");
+const emptyCartRow = document.getElementById("emptyCartRow");
+const checkoutBtn = document.getElementById("checkoutBtn");
+
+// Initialize lucide icons
+lucide.createIcons();
+
+// Initialize Select2
+$(document).ready(function() {
+    $('#productSelect').select2({
+        placeholder: "-- Select a Product --",
+        allowClear: true
+    });
+
+    // Use jQuery event for Select2
+    $('#productSelect').on('change', function() {
+        const selectedVal = $(this).val();
+        if (selectedVal) {
+            const option = this.options[this.selectedIndex];
+            const price = parseFloat(option.dataset.price) || 0;
+            const stock = parseInt(option.dataset.stock) || 0;
+            
+            // Auto-fill selling price but allow user to manually edit it later
+            priceInput.value = price > 0 ? price.toFixed(2) : "0.00";
+            qtyInput.max = stock;
+            qtyInput.value = "1";
+            discountInput.value = "0";
+            
+            // Check if product is already in cart to deduct available stock
+            const cartItem = cart.find(item => item.product_id === selectedVal);
+            const cartQty = cartItem ? cartItem.quantity : 0;
+            const availableStock = stock - cartQty;
+            
+            if (availableStock <= 0) {
+                stockLabel.textContent = `⚠️ Out of stock (In Cart: ${cartQty})`;
+                stockLabel.style.color = "#d32f2f";
+                stockInfo.style.display = "block";
+                qtyInput.disabled = true;
+            } else {
+                stockLabel.textContent = `📦 Available: ${availableStock} units`;
+                stockLabel.style.color = "#2e7d32";
+                stockInfo.style.display = "block";
+                qtyInput.disabled = false;
+                qtyInput.max = availableStock;
+            }
+        } else {
+            stockInfo.style.display = "none";
+            priceInput.value = "0.00";
+            qtyInput.value = "1";
+            discountInput.value = "0";
+            qtyInput.disabled = false;
+            qtyInput.max = "";
+        }
+    });
+});
+
+function showMessage(text, type, elementId = "message") {
+    const el = document.getElementById(elementId);
+    el.textContent = text;
+    el.className = `message-box ${type}`;
+    setTimeout(() => {
+        el.className = "message-box";
+    }, 3000);
+}
+
+function addToCart() {
+    const productId = select.value;
+    const qty = parseInt(qtyInput.value);
+    const price = parseFloat(priceInput.value);
+    const discount = parseFloat(discountInput.value || 0);
+    
+    if (!productId) {
+        showMessage("❌ Please select a product", "error");
+        return;
+    }
+    
+    if (!price || price <= 0) {
+        showMessage("❌ Selling price must be greater than 0", "error");
+        return;
+    }
+    
+    if (!qty || qty <= 0) {
+        showMessage("❌ Quantity must be greater than 0", "error");
+        return;
+    }
+    
+    if (discount < 0) {
+        showMessage("❌ Discount cannot be negative", "error");
+        return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const productName = option.dataset.name;
+    const totalStock = parseInt(option.dataset.stock) || 0;
+    
+    // Check if item already exists in cart
+    const existingIndex = cart.findIndex(item => item.product_id === productId);
+    
+    let currentCartQty = 0;
+    if (existingIndex !== -1) {
+        currentCartQty = cart[existingIndex].quantity;
+    }
+    
+    if (currentCartQty + qty > totalStock) {
+        showMessage(`❌ Not enough stock! You only have ${totalStock - currentCartQty} left available to add.`, "error");
+        return;
+    }
+    
+    if (existingIndex !== -1) {
+        // Update existing item
+        cart[existingIndex].quantity += qty;
+        cart[existingIndex].discount += discount;
+        // Keep the latest price or average it? We'll just update it to the newest one entered
+        cart[existingIndex].selling_price = price;
+    } else {
+        // Add new item
+        cart.push({
+            product_id: productId,
+            name: productName,
+            quantity: qty,
+            selling_price: price,
+            discount: discount
+        });
+    }
+    
+    // Reset form
+    $('#productSelect').val(null).trigger('change');
+    priceInput.value = "";
+    qtyInput.value = "1";
+    discountInput.value = "0";
+    stockInfo.style.display = "none";
+    
+    renderCart();
+    showMessage("✅ Added to cart", "success");
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    renderCart();
+    // Trigger change to update stock info if the removed product is currently selected
+    if ($('#productSelect').val()) {
+        $('#productSelect').trigger('change');
+    }
+}
+
+function renderCart() {
+    cartBody.innerHTML = "";
+    
+    let cartSubtotal = 0;
+    let cartDiscount = 0;
+    let cartTotal = 0;
+    
+    if (cart.length === 0) {
+        cartBody.appendChild(emptyCartRow);
+        checkoutBtn.disabled = true;
+    } else {
+        checkoutBtn.disabled = false;
+        
+        cart.forEach((item, index) => {
+            const itemSubtotal = item.selling_price * item.quantity;
+            const itemTotal = itemSubtotal - item.discount;
+            
+            cartSubtotal += itemSubtotal;
+            cartDiscount += item.discount;
+            cartTotal += itemTotal;
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="font-weight: 500;">${item.name}</td>
+                <td>Rs ${item.selling_price.toFixed(2)}</td>
+                <td>${item.quantity}</td>
+                <td style="font-weight: 600;">Rs ${itemTotal.toFixed(2)}</td>
+                <td style="text-align: right;">
+                    <button class="remove-btn" onclick="removeFromCart(${index})" title="Remove item">
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </td>
+            `;
+            cartBody.appendChild(tr);
+        });
+        
+        // Re-initialize icons for dynamically added content
+        lucide.createIcons();
+    }
+    
+    // Update totals
+    document.getElementById("cartSubtotal").textContent = `Rs ${cartSubtotal.toFixed(2)}`;
+    document.getElementById("cartDiscount").textContent = `Rs ${cartDiscount.toFixed(2)}`;
+    document.getElementById("cartTotal").textContent = `Rs ${cartTotal.toFixed(2)}`;
+}
+
+function checkout() {
+    if (cart.length === 0) {
+        showMessage("❌ Cart is empty", "error", "checkoutMessage");
+        return;
+    }
+    
+    checkoutBtn.disabled = true;
+    checkoutBtn.innerHTML = '<i data-lucide="loader"></i> Processing...';
+    lucide.createIcons();
+    
+    fetch('/sell/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            items: cart,
+            payment_method: document.querySelector('input[name="payment_method"]:checked').value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.open(data.invoice_url, '_blank');  // ✅ open PDF
+            
+            showMessage(`✅ Checkout successful!`, "success", "checkoutMessage");
+            
+            // Empty cart
+            cart = [];
+            renderCart();
+            
+            // Refresh page after a short delay to update product stocks in the select options
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+            
+        } else {
+            showMessage(`❌ ${data.error || 'Error during checkout'}`, "error", "checkoutMessage");
+            checkoutBtn.disabled = false;
+            checkoutBtn.innerHTML = '<i data-lucide="shopping-bag"></i> Complete Checkout';
+            lucide.createIcons();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showMessage("❌ Network error. Please try again.", "error", "checkoutMessage");
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = '<i data-lucide="shopping-bag"></i> Complete Checkout';
+        lucide.createIcons();
+    });
+}
+</script>
+
+{% endblock %}

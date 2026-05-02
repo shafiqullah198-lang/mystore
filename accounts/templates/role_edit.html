@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Edit Role</h1>
+        <p>Update role name and permissions</p>
+    </div>
+    <a href="{% url 'role_list' %}" class="button secondary">Back to Roles</a>
+</section>
+
+<div class="panel form-panel role-panel">
+    {% include 'role_form.html' %}
+</div>
+{% endblock %}

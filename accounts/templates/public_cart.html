@@ -1,0 +1,271 @@
+{% extends 'public_base.html' %}
+
+{% block title %}Cart - MyStore{% endblock %}
+
+{% block content %}
+<section style="padding: 48px 40px; max-width: 1100px; margin: 0 auto;">
+    <div style="margin-bottom: 32px;">
+        <h1 style="font-size: 36px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Your Cart</h1>
+        <p style="color: #6b7280; margin-top: 8px;" id="cartSubtitle">Loading...</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 360px; gap: 32px; align-items: start;">
+        <!-- Cart Items -->
+        <div>
+            <div id="cartEmpty" style="display:none; text-align:center; padding:80px; background:white; border-radius:16px; border:1px solid #e5e7eb;">
+                <i data-lucide="shopping-cart" style="width:64px;height:64px;color:#d1d5db;display:block;margin:0 auto 16px;"></i>
+                <h3 style="color:#374151;font-size:20px;">Your cart is empty</h3>
+                <p style="color:#9ca3af;margin:8px 0 24px;">Add some products and come back!</p>
+                <a href="{% url 'public_products' %}" class="btn btn-primary">Browse Products</a>
+            </div>
+
+            <div id="cartItems"></div>
+        </div>
+
+        <!-- Order Summary & Upsells -->
+        <div>
+            <div id="orderSummary" style="background:white;border-radius:16px;border:1px solid #e5e7eb;padding:24px;position:sticky;top:90px;margin-bottom:24px;">
+                <h2 style="font-size:18px;font-weight:700;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #f3f4f6;">Order Summary</h2>
+                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+                    <div style="display:flex;justify-content:space-between;font-size:14px;color:#6b7280;">
+                        <span>Subtotal</span><span id="summarySubtotal">Rs 0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:14px;color:#6b7280;">
+                        <span>Items</span><span id="summaryItems">0</span>
+                    </div>
+                    <div style="height:1px;background:#f3f4f6;"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:#111827;">
+                        <span>Total</span><span id="summaryTotal" style="color:#6366f1;">Rs 0</span>
+                    </div>
+                </div>
+                <a href="{% url 'public_checkout_page' %}" id="checkoutBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:16px;text-decoration:none;" disabled>
+                    <i data-lucide="credit-card" style="width:18px;height:18px;"></i> Proceed to Checkout
+                </a>
+                <a href="{% url 'public_products' %}" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:12px;">
+                    <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Continue Shopping
+                </a>
+            </div>
+
+            <!-- Upsells Section -->
+            <div id="upsellSection" style="display:none;background:white;border-radius:16px;border:1px solid #e5e7eb;padding:24px;position:sticky;top:410px;">
+                <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#111827;display:flex;align-items:center;gap:8px;">
+                    <i data-lucide="sparkles" style="width:16px;height:16px;color:#f59e0b;"></i> Frequently Bought Together
+                </h3>
+                <div id="upsellItems" style="display:flex;flex-direction:column;gap:16px;">
+                    <!-- Items populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block extra_scripts %}
+<style>
+.cart-item-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: all 0.2s;
+}
+.cart-item-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+.qty-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 6px 12px;
+}
+.qty-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 700;
+    color: #6366f1;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+.qty-btn:hover { background: #e0e7ff; }
+.qty-val { font-size: 16px; font-weight: 700; min-width: 24px; text-align: center; }
+
+.remove-btn {
+    background: #fee2e2;
+    border: none;
+    color: #ef4444;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.remove-btn:hover { background: #fecaca; }
+</style>
+
+<script>
+function renderCart() {
+    const container = document.getElementById('cartItems');
+    const emptyBox = document.getElementById('cartEmpty');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const subtitle = document.getElementById('cartSubtitle');
+
+    container.innerHTML = '';
+
+    try {
+        let cart = getCart();
+        if (!Array.isArray(cart)) {
+            cart = [];
+            localStorage.removeItem('public_cart');
+        }
+
+        if (cart.length === 0) {
+            emptyBox.style.display = 'block';
+            checkoutBtn.style.pointerEvents = 'none';
+            checkoutBtn.style.opacity = '0.5';
+            subtitle.textContent = '0 items in your cart';
+            document.getElementById('summarySubtotal').textContent = 'Rs 0';
+            document.getElementById('summaryItems').textContent = '0';
+            document.getElementById('summaryTotal').textContent = 'Rs 0';
+            return;
+        }
+
+        emptyBox.style.display = 'none';
+        checkoutBtn.style.pointerEvents = 'auto';
+        checkoutBtn.style.opacity = '1';
+
+        let total = 0;
+        let totalItems = 0;
+
+        cart.forEach((item, idx) => {
+            let rawPrice = String(item.price).replace(/,/g, '');
+            const price = parseFloat(rawPrice) || 0;
+            const itemTotal = price * item.quantity;
+            total += itemTotal;
+            totalItems += item.quantity;
+
+            const div = document.createElement('div');
+            div.className = 'cart-item-card';
+            div.innerHTML = `
+                <div style="width:60px;height:60px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#a5b4fc;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3"/><path d="m21 8-5 5-5-5"/><path d="M16 3v10"/></svg>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:16px;font-weight:700;color:#111827;">${item.name || 'Product'}</div>
+                    <div style="font-size:14px;color:#6b7280;margin-top:2px;">Rs ${price.toLocaleString()} each</div>
+                </div>
+                <div class="qty-control">
+                    <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
+                    <span class="qty-val">${item.quantity}</span>
+                    <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
+                </div>
+                <div style="font-size:17px;font-weight:800;color:#6366f1;min-width:90px;text-align:right;">Rs ${itemTotal.toLocaleString()}</div>
+                <button class="remove-btn" onclick="removeItem(${idx})">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+                    Remove
+                </button>
+            `;
+            container.appendChild(div);
+        });
+
+        subtitle.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} in your cart`;
+        document.getElementById('summarySubtotal').textContent = `Rs ${total.toLocaleString()}`;
+        document.getElementById('summaryItems').textContent = totalItems;
+        document.getElementById('summaryTotal').textContent = `Rs ${total.toLocaleString()}`;
+
+        // Fetch Upsells
+        const itemIds = cart.map(i => i.product_id);
+        if (itemIds.length > 0) {
+            fetch('/api/upsells/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ item_ids: itemIds })
+            })
+            .then(r => r.json())
+            .then(data => {
+                const upsellSection = document.getElementById('upsellSection');
+                const upsellItems = document.getElementById('upsellItems');
+                
+                if (data.upsells && data.upsells.length > 0) {
+                    upsellItems.innerHTML = '';
+                    data.upsells.forEach(p => {
+                        if(p.stock > 0) {
+                            const div = document.createElement('div');
+                            div.style.display = 'flex';
+                            div.style.alignItems = 'center';
+                            div.style.gap = '12px';
+                            div.innerHTML = `
+                                ${p.image ? `<img src="${p.image}" alt="" style="width:48px;height:48px;border-radius:8px;object-fit:cover;background:#f3f4f6;">` : '<div style="width:48px;height:48px;background:#e5e7eb;border-radius:8px;"></div>'}
+                                <div style="flex:1;">
+                                    <div style="font-size:13px;font-weight:600;color:#111827;">${p.name}</div>
+                                    <div style="font-size:13px;color:#6366f1;font-weight:700;margin-top:2px;">Rs ${parseFloat(p.price).toLocaleString()}</div>
+                                </div>
+                                <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.price}', ${p.stock}); renderCart();" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">Add</button>
+                            `;
+                            upsellItems.appendChild(div);
+                        }
+                    });
+                    if(upsellItems.children.length > 0) {
+                        upsellSection.style.display = 'block';
+                        lucide.createIcons();
+                    } else {
+                        upsellSection.style.display = 'none';
+                    }
+                } else {
+                    upsellSection.style.display = 'none';
+                }
+            })
+            .catch(err => console.error('Error fetching upsells:', err));
+        } else {
+            document.getElementById('upsellSection').style.display = 'none';
+        }
+        
+    } catch (e) {
+        container.innerHTML = `<p style="color:red;padding:20px;">Error rendering cart: ${e.message}</p>`;
+        console.error(e);
+    }
+}
+
+function changeQty(idx, delta) {
+    let cart = getCart();
+    cart[idx].quantity += delta;
+    if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+    else if (cart[idx].quantity > cart[idx].stock) {
+        showToast(`Max stock is ${cart[idx].stock}`, 'error');
+        cart[idx].quantity = cart[idx].stock;
+    }
+    saveCart(cart);
+    renderCart();
+}
+
+function removeItem(idx) {
+    let cart = getCart();
+    cart.splice(idx, 1);
+    saveCart(cart);
+    renderCart();
+    showToast('Item removed from cart', 'success');
+}
+
+    // The checkout() function has been removed as we now redirect to the checkout page.
+
+renderCart();
+</script>
+{% endblock %}
+{% endblock %}

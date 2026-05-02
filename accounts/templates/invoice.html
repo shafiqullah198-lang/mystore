@@ -1,0 +1,45 @@
+<!-- templates/invoice.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        h2 { text-align: center; }
+        .box { border: 1px solid #ddd; padding: 10px; margin-top: 20px; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        td, th { border: 1px solid #ddd; padding: 8px; }
+    </style>
+</head>
+<body>
+
+<h2>Sales Invoice</h2>
+
+<div class="box">
+    <p><strong>Invoice:</strong> {{ sale.invoice_number }}</p>
+    <p><strong>Date:</strong> {{ sale.created_at }}</p>
+    <p><strong>Sold By:</strong> {{ sale.created_by.username }}</p>
+</div>
+
+<table>
+    <tr>
+        <th>Product</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>Total</th>
+    </tr>
+    <tr>
+        <td>{{ sale.product.name }}</td>
+        <td>{{ sale.quantity }}</td>
+        <td>{{ sale.selling_price }}</td>
+        <td>{{ sale.total_price }}</td>
+    </tr>
+</table>
+
+<div class="box">
+    <p><strong>Discount:</strong> {{ sale.discount }}</p>
+    <p><strong>Total:</strong> {{ sale.total_price }}</p>
+</div>
+
+</body>
+</html>

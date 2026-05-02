@@ -1,0 +1,178 @@
+{% load humanize %}
+<section class="dashboard-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p>{{ dashboard_subtitle|default:'Overview' }}</p>
+    </div>
+</section>
+
+<section class="stats-grid dashboard-stats">
+    <!-- PRODUCTS CARD -->
+    <article class="stat-card dashboard-stat-card">
+        <div class="card-icon primary"><i data-lucide="box"></i></div>
+        <div class="stat-content">
+            <h2>{{ total_products }}</h2>
+            <p>Total Products</p>
+            <div class="avatar-group small">
+                {% for product in products|slice:":4" %}
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" class="avatar-stack" alt="{{ product.name }}" title="{{ product.name }}">
+                    {% else %}
+                        <span class="avatar-stack placeholder" title="{{ product.name }}">📦</span>
+                    {% endif %}
+                {% endfor %}
+                {% if products|length > 4 %}
+                    <div class="avatar-stack more">+{{ products|length|add:"-4" }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+
+    <!-- USERS CARD -->
+    <article class="stat-card dashboard-stat-card">
+        <div class="card-icon success"><i data-lucide="users"></i></div>
+        <div class="stat-content">
+            <h2>{{ total_users }}</h2>
+            <p>Total Users</p>
+            <div class="avatar-group small">
+                {% for user in users|slice:":4" %}
+                    {% if user.profile and user.profile.image %}
+                        <img src="{{ user.profile.image.url }}" class="avatar-stack" alt="{{ user.username }}" title="{{ user.username }}">
+                    {% else %}
+                        <span class="avatar-stack placeholder" title="{{ user.username }}">👤</span>
+                    {% endif %}
+                {% endfor %}
+                {% if users|length > 4 %}
+                    <div class="avatar-stack more">+{{ users|length|add:"-4" }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+
+    <!-- SALES CARD -->
+    <article class="stat-card dashboard-stat-card">
+        <div class="card-icon warning"><i data-lucide="shopping-cart"></i></div>
+        <div class="stat-content">
+            <h2>Rs {{ total_sales|floatformat:0|intcomma }}</h2>
+            <p>Total Sales Revenue</p>
+            <span class="badge success">All time</span>
+        </div>
+    </article>
+
+    <!-- PROFIT CARD -->
+    <article class="stat-card dashboard-stat-card">
+        <div class="card-icon danger"><i data-lucide="trending-up"></i></div>
+        <div class="stat-content">
+            <h2>Rs {{ total_profit|floatformat:0 }}</h2>
+            <p>Total Profit</p>
+            <span class="badge info">Net gain</span>
+        </div>
+    </article>
+</section>
+
+<section class="dashboard-card quick-actions">
+    <div class="dashboard-section-title">
+        <h2>Quick Actions</h2>
+        <p>Jump into common admin tasks</p>
+    </div>
+    <div class="quick-action-buttons">
+        {% if perms.accounts.can_add_product %}
+            <a href="{% url 'add_product' %}" class="btn primary"><i data-lucide="plus"></i>Add Product</a>
+        {% endif %}
+        {% if can_manage_users %}
+            <a href="{% url 'add_user' %}" class="btn success"><i data-lucide="user-plus"></i>Add User</a>
+        {% endif %}
+        {% if perms.accounts.view_sales %}
+            <a href="{% url 'sales' %}" class="btn warning"><i data-lucide="shopping-cart"></i>Create Sale</a>
+        {% endif %}
+        {% if can_manage_users %}
+            <a href="{% url 'permission_list' %}" class="btn secondary"><i data-lucide="shield"></i>Permissions</a>
+        {% endif %}
+        {% if perms.accounts.can_view_product %}
+            <a href="{% url 'product_list' %}" class="btn muted-action"><i data-lucide="box"></i>View Products</a>
+        {% endif %}
+        <a href="{% url 'orders_dashboard' %}" class="btn secondary"><i data-lucide="package"></i>Orders</a>
+    </div>
+</section>
+
+<section class="dashboard-content-grid">
+    <article class="dashboard-card chart-card">
+        <div class="dashboard-section-title">
+            <h2>Products Added</h2>
+            <p>Last 7 days</p>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="productChart"></canvas>
+        </div>
+    </article>
+
+    <article class="dashboard-card activity">
+        <div class="dashboard-section-title">
+            <h2>Recent Activity</h2>
+            <p>Latest system updates</p>
+        </div>
+        <ul class="activity-list">
+            {% for act in activities %}
+                <li>
+                    <span class="activity-icon"><i data-lucide="bell"></i></span>
+                    <div>
+                        <strong>{{ act.message }}</strong>
+                        <small>{{ act.created_at|date:'M d, Y H:i' }}</small>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="activity-empty">No activity yet.</li>
+            {% endfor %}
+        </ul>
+    </article>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const chartCanvas = document.getElementById('productChart');
+
+    if (chartCanvas) {
+        new Chart(chartCanvas, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels|safe }},
+                datasets: [{
+                    label: 'Products Added',
+                    data: {{ chart_data|safe }},
+                    borderColor: '#00b894',
+                    backgroundColor: 'rgba(0, 184, 148, 0.12)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#00b894',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                        },
+                        grid: {
+                            color: '#edf0f3',
+                        },
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                    },
+                },
+            },
+        });
+    }
+</script>

@@ -1,0 +1,606 @@
+{% extends 'public_base.html' %}
+{% load humanize %}
+
+{% block title %}Checkout - MyStore{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ===== PAGE ===== */
+.checkout-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: start;
+}
+@media(max-width: 900px){ .checkout-wrapper { grid-template-columns: 1fr; } }
+
+/* ===== STEPS ===== */
+.step-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 32px;
+}
+.step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9ca3af;
+}
+.step.active { color: #6366f1; }
+.step.done { color: #10b981; }
+.step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    background: #e5e7eb; color: #9ca3af;
+}
+.step.active .step-num { background: #6366f1; color: white; }
+.step.done .step-num { background: #10b981; color: white; }
+.step-line { flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px; }
+.step-line.done { background: #10b981; }
+
+/* ===== CARD ===== */
+.checkout-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+/* ===== PAYMENT METHOD ===== */
+.method-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+}
+.method-btn {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+.method-btn:hover { border-color: #a5b4fc; background: #f5f3ff; }
+.method-btn.selected { border-color: #6366f1; background: #eef2ff; }
+.method-btn .method-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+}
+.method-btn .method-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+}
+.method-btn.selected .method-label { color: #6366f1; }
+
+/* ===== FORM FIELDS ===== */
+.field-group { margin-bottom: 18px; }
+.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 7px;
+}
+.field-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #111827;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+    background: white;
+}
+.field-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ===== CARD VISUAL ===== */
+.card-visual {
+    background: linear-gradient(135deg, #6366f1, #4f46e5, #312e81);
+    border-radius: 16px;
+    padding: 24px;
+    color: white;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.card-visual::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+}
+.card-visual::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -20px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+}
+.card-chip {
+    width: 36px; height: 28px;
+    background: linear-gradient(135deg, #fde68a, #f59e0b);
+    border-radius: 5px;
+    position: relative;
+    z-index: 1;
+}
+.card-number-display {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    font-family: 'Courier New', monospace;
+    position: relative;
+    z-index: 1;
+}
+.card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+    z-index: 1;
+}
+.card-holder-label { font-size: 10px; opacity: 0.7; text-transform: uppercase; margin-bottom: 3px; }
+.card-holder-name { font-size: 13px; font-weight: 600; text-transform: uppercase; }
+.card-network { font-size: 22px; font-weight: 900; font-style: italic; }
+
+/* ===== PAY BUTTON ===== */
+.pay-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+.pay-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(99,102,241,0.4); }
+.pay-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ===== LOADING ===== */
+.spinner {
+    width: 22px; height: 22px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== SUCCESS ===== */
+#successScreen {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+}
+.success-circle {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #6366f1;
+    color: white;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    margin-top: 8px;
+    transition: all 0.2s;
+}
+.download-btn:hover { background: #4f46e5; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99,102,241,0.35); }
+
+/* ===== ORDER SUMMARY ===== */
+.summary-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    position: sticky;
+    top: 90px;
+}
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+}
+.summary-item:last-child { border-bottom: none; }
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 0;
+    border-top: 2px solid #e5e7eb;
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 800;
+}
+.summary-total span:last-child { color: #6366f1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 32px 24px 0; max-width: 1100px; margin: 0 auto;">
+    <!-- Breadcrumb -->
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#9ca3af;margin-bottom:24px;">
+        <a href="{% url 'public_cart' %}" style="color:#6366f1;text-decoration:none;font-weight:600;">← Back to Cart</a>
+    </div>
+
+    <!-- Step Bar -->
+    <div class="step-bar">
+        <div class="step done">
+            <div class="step-num">✓</div>
+            <span>Cart</span>
+        </div>
+        <div class="step-line done"></div>
+        <div class="step active" id="step2El">
+            <div class="step-num">2</div>
+            <span>Payment</span>
+        </div>
+        <div class="step-line" id="line2"></div>
+        <div class="step" id="step3El">
+            <div class="step-num">3</div>
+            <span>Confirmation</span>
+        </div>
+    </div>
+</div>
+
+<div class="checkout-wrapper">
+
+    <!-- ===== LEFT: PAYMENT PANEL ===== -->
+    <div>
+        <!-- MAIN FORM CARD -->
+        <div class="checkout-card" id="paymentPanel">
+            <h2 style="font-size:20px;font-weight:800;margin-bottom:6px;">Payment Method</h2>
+            <p style="font-size:13px;color:#9ca3af;margin-bottom:24px;">Choose how you'd like to pay</p>
+
+            <!-- METHOD SELECTION -->
+            <div class="method-grid" id="methodGrid">
+                <div class="method-btn" onclick="selectMethod('bank')" id="method-bank">
+                    <span class="method-icon">🏦</span>
+                    <div class="method-label">Bank Transfer</div>
+                </div>
+                <div class="method-btn" onclick="selectMethod('card')" id="method-card">
+                    <span class="method-icon">💳</span>
+                    <div class="method-label">Debit/Credit</div>
+                </div>
+            </div>
+
+            <!-- BANK TRANSFER FORM -->
+            <div id="form-bank" style="display:none;">
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px;">
+                    <div style="font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:12px;">🏦 Bank Account Details</div>
+                    <div style="display:grid;gap:8px;font-size:13px;color:#1e40af;">
+                        <div style="display:flex;justify-content:space-between;"><span>Bank Name:</span><strong>HBL Bank</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Account Title:</span><strong>MyStore Pvt Ltd</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Account No:</span><strong>1234-5678-9012</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>IBAN:</span><strong>PK36HABB0000001123456702</strong></div>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Your Name <span style="color:#ef4444;">*</span></label>
+                    <input class="field-input" type="text" id="bankName" placeholder="Account holder name" required>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Transaction Reference # <span style="color:#ef4444;">*</span></label>
+                    <input class="field-input" type="text" id="bankRef" placeholder="e.g. TXN123456789" required>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Sending Bank</label>
+                    <input class="field-input" type="text" id="bankSender" placeholder="e.g. Meezan Bank">
+                </div>
+                <button class="pay-btn" onclick="placeOrder('bank')" id="payBankBtn">
+                    <span>✓ Confirm Bank Transfer</span>
+                </button>
+            </div>
+
+            <!-- CARD FORM -->
+            <div id="form-card" style="display:none;">
+                <!-- Visual Card -->
+                <div class="card-visual" id="cardVisual">
+                    <div class="card-chip"></div>
+                    <div class="card-number-display" id="cardNumDisplay">•••• •••• •••• ••••</div>
+                    <div class="card-bottom">
+                        <div>
+                            <div class="card-holder-label">Card Holder</div>
+                            <div class="card-holder-name" id="cardNameDisplay">YOUR NAME</div>
+                        </div>
+                        <div class="card-network" id="cardNetwork">VISA</div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Card Number <span style="color:#ef4444;">*</span></label>
+                    <input class="field-input" type="text" id="cardNumber" placeholder="1234 5678 9012 3456"
+                           maxlength="19" oninput="formatCardNumber(this)" required>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Cardholder Name <span style="color:#ef4444;">*</span></label>
+                    <input class="field-input" type="text" id="cardName" placeholder="Name on card"
+                           oninput="document.getElementById('cardNameDisplay').textContent = this.value.toUpperCase() || 'YOUR NAME'" required>
+                </div>
+                <div class="field-row">
+                    <div class="field-group">
+                        <label class="field-label">Expiry Date <span style="color:#ef4444;">*</span></label>
+                        <input class="field-input" type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5"
+                               oninput="formatExpiry(this)" required>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">CVV <span style="color:#ef4444;">*</span></label>
+                        <input class="field-input" type="password" id="cardCvv" placeholder="•••" maxlength="4" required>
+                    </div>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:8px;background:#f9fafb;border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+                    <span style="font-size:18px;">🔒</span>
+                    <span style="font-size:12px;color:#6b7280;">Your card information is encrypted and secure. We never store card details.</span>
+                </div>
+
+                <button class="pay-btn" onclick="placeOrder('card')" id="payCardBtn">
+                    <span>🔒 Complete Payment</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="checkout-card" id="successPanel" style="display:none;">
+            <div id="successScreen" style="display:none;text-align:center;padding:40px 20px;">
+                <div class="success-circle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h2 style="font-size:24px;font-weight:800;color:#111827;margin-bottom:8px;">Order Confirmed! 🎉</h2>
+                <p style="color:#6b7280;font-size:15px;margin-bottom:6px;">Your payment was processed successfully.</p>
+                <p id="invoiceNumDisplay" style="font-size:13px;color:#9ca3af;margin-bottom:4px;"></p>
+
+                <!-- Tracking ID box -->
+                <div id="trackingBox" style="display:none;background:#eef2ff;border-radius:14px;padding:16px 24px;margin:20px auto;max-width:360px;">
+                    <div style="font-size:12px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Your Tracking ID</div>
+                    <div id="trackingIdDisplay" style="font-size:22px;font-weight:800;color:#312e81;font-family:monospace;"></div>
+                    <div style="font-size:12px;color:#818cf8;margin-top:4px;">Save this to track your delivery</div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:20px;">
+                    <a id="trackOrderBtn" href="#" style="display:inline-flex;align-items:center;gap:10px;background:#6366f1;color:white;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;transition:all .2s;">
+                        📦 Track My Order
+                    </a>
+                    <a id="downloadInvoiceBtn" href="#" target="_blank" class="download-btn" style="background:#10b981;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Download Receipt
+                    </a>
+                    <a href="{% url 'public_home' %}" style="font-size:14px;color:#6366f1;text-decoration:none;font-weight:600;">← Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RIGHT: ORDER SUMMARY ===== -->
+    <div class="summary-card">
+        <h3 style="font-size:17px;font-weight:800;margin-bottom:20px;">Order Summary</h3>
+        <div id="summaryItems" style="margin-bottom:16px;"></div>
+        <div class="summary-total">
+            <span>Total</span>
+            <span id="summaryGrandTotal">Rs 0</span>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:10px;text-align:center;">
+            <div style="font-size:12px;color:#9ca3af;">🔒 Secure Checkout</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let selectedMethod = null;
+    let invoiceUrl = null;
+
+    // ---- Load cart ----
+    function loadSummary() {
+        const container = document.getElementById('summaryItems');
+        container.innerHTML = '';
+        let total = 0;
+
+        try {
+            let cart = getCart();
+            // Ensure cart is an array
+            if (!Array.isArray(cart)) {
+                cart = [];
+                localStorage.removeItem('public_cart');
+            }
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#9ca3af;font-size:14px;">Cart is empty</p>';
+                setTimeout(() => { window.location.href = '/cart/'; }, 1500);
+                return;
+            }
+
+            cart.forEach(item => {
+                // Remove any commas and parse
+                let rawPrice = String(item.price).replace(/,/g, '');
+                const price = parseFloat(rawPrice) || 0;
+                const itemTotal = price * item.quantity;
+                total += itemTotal;
+                
+                const div = document.createElement('div');
+                div.className = 'summary-item';
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight:600;font-size:14px;">${item.name || 'Product'}</div>
+                        <div style="font-size:12px;color:#9ca3af;">Qty: ${item.quantity} × Rs ${price.toLocaleString()}</div>
+                    </div>
+                    <div style="font-weight:700;font-size:14px;">Rs ${itemTotal.toLocaleString()}</div>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('summaryGrandTotal').textContent = 'Rs ' + total.toLocaleString();
+        } catch (e) {
+            container.innerHTML = `<p style="color:red;font-size:12px;">Error: ${e.message}</p>`;
+            console.error('Cart render error:', e);
+        }
+    }
+
+    // ---- Method selection ----
+    function selectMethod(method) {
+        selectedMethod = method;
+        ['bank', 'card'].forEach(m => {
+            document.getElementById('method-' + m).classList.remove('selected');
+            document.getElementById('form-' + m).style.display = 'none';
+        });
+        document.getElementById('method-' + method).classList.add('selected');
+        document.getElementById('form-' + method).style.display = 'block';
+    }
+
+    // ---- Card number formatting ----
+    function formatCardNumber(input) {
+        let val = input.value.replace(/\D/g, '').substring(0, 16);
+        val = val.match(/.{1,4}/g)?.join(' ') || val;
+        input.value = val;
+        const display = val || '•••• •••• •••• ••••';
+        const padded = display.padEnd(19, '•').substring(0, 19);
+        document.getElementById('cardNumDisplay').textContent = padded.length < 4 ? '•••• •••• •••• ••••' : display;
+
+        // Detect card network
+        const first = val.replace(/ /g, '')[0];
+        const network = document.getElementById('cardNetwork');
+        if (first === '4') network.textContent = 'VISA';
+        else if (first === '5') network.textContent = 'MASTERCARD';
+        else if (first === '3') network.textContent = 'AMEX';
+        else network.textContent = 'CARD';
+    }
+
+    function formatExpiry(input) {
+        let val = input.value.replace(/\D/g, '').substring(0, 4);
+        if (val.length >= 2) val = val.substring(0, 2) + '/' + val.substring(2);
+        input.value = val;
+    }
+
+    // ---- Place Order ----
+    function placeOrder(method) {
+        const cart = getCart();
+        if (!cart.length) { alert('Cart is empty!'); return; }
+
+        // Validate
+        if (method === 'bank') {
+            if (!document.getElementById('bankName').value.trim()) { alert('Please enter your name.'); return; }
+            if (!document.getElementById('bankRef').value.trim()) { alert('Please enter the transaction reference.'); return; }
+        }
+        if (method === 'card') {
+            const num = document.getElementById('cardNumber').value.replace(/ /g, '');
+            if (num.length < 16) { alert('Please enter a valid 16-digit card number.'); return; }
+            if (!document.getElementById('cardName').value.trim()) { alert('Please enter the cardholder name.'); return; }
+            if (document.getElementById('cardExpiry').value.length < 5) { alert('Please enter expiry date.'); return; }
+            if (document.getElementById('cardCvv').value.length < 3) { alert('Please enter CVV.'); return; }
+        }
+
+        // Show loading
+        const btnId = method === 'bank' ? 'payBankBtn' : 'payCardBtn';
+        const btn = document.getElementById(btnId);
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner"></div><span>Processing...</span>';
+
+        fetch('/public_checkout/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+        body: JSON.stringify({
+                items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
+                payment_method: method,
+                customer_name:  document.getElementById('bankName')?.value || document.getElementById('cardName')?.value || '',
+                customer_email: '',
+                customer_phone: '',
+                shipping_address: '',
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                invoiceUrl = data.invoice_url;
+                localStorage.removeItem('public_cart');
+                updateCartBadge();
+                showSuccess(data.invoice_url, data.invoice_number, data.tracking_id, data.track_url);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = method === 'bank' ? '✓ Confirm Bank Transfer' : '🔒 Complete Payment';
+                alert('❌ ' + (data.error || 'Something went wrong. Please try again.'));
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '🔒 Complete Payment';
+            alert('❌ Network error. Please try again.');
+        });
+    }
+
+    function showSuccess(url, invoiceNum, trackingId, trackUrl) {
+        document.getElementById('step2El').classList.remove('active');
+        document.getElementById('step2El').classList.add('done');
+        document.getElementById('step2El').querySelector('.step-num').textContent = '✓';
+        document.getElementById('line2').classList.add('done');
+        document.getElementById('step3El').classList.add('active');
+
+        document.getElementById('paymentPanel').style.display = 'none';
+        document.getElementById('successPanel').style.display = 'block';
+        document.getElementById('successScreen').style.display = 'block';
+        document.getElementById('downloadInvoiceBtn').href = url;
+
+        if (invoiceNum)
+            document.getElementById('invoiceNumDisplay').textContent = 'Invoice: ' + invoiceNum;
+
+        if (trackingId) {
+            document.getElementById('trackingIdDisplay').textContent = trackingId;
+            document.getElementById('trackingBox').style.display = 'block';
+            document.getElementById('trackOrderBtn').href = trackUrl || ('/track/' + trackingId + '/');
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    loadSummary();
+</script>
+{% endblock %}

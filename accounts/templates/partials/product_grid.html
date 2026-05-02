@@ -1,0 +1,70 @@
+{% load humanize %}
+
+<div class="product-grid" style="align-content: start;" id="productGrid">
+{% for product in products %}
+<div class="product-card">
+    <a href="{% url 'public_product_detail' product.id %}" style="text-decoration: none; color: inherit;">
+        {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+        {% else %}
+            <div class="product-img-placeholder">
+                <i data-lucide="package" style="width:56px;height:56px;"></i>
+            </div>
+        {% endif %}
+    </a>
+
+    <div class="product-body">
+        <a href="{% url 'public_product_detail' product.id %}" style="text-decoration: none; color: inherit;">
+            <div class="product-name" title="{{ product.name }}">{{ product.name }}</div>
+        </a>
+
+        <!-- Star Rating -->
+        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+            <div style="display: flex; gap: 2px;">
+                {% for i in "12345" %}
+                    <i data-lucide="star" style="width: 14px; height: 14px; color: {% if forloop.counter <= product.average_rating %}#fdcb6e{% else %}#dfe6e9{% endif %}; fill: {% if forloop.counter <= product.average_rating %}#fdcb6e{% else %}#dfe6e9{% endif %};"></i>
+                {% endfor %}
+            </div>
+            <span style="font-size: 11px; color: #6b7280; font-weight: 500;">({{ product.review_count }})</span>
+        </div>
+
+        {% if product.description %}
+        <p style="font-size: 13px; color: #6b7280; margin-bottom: 10px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ product.description }}</p>
+        {% endif %}
+
+        <div class="product-price">Rs {{ product.price|floatformat:0|intcomma }}</div>
+
+        {% if product.stock > 10 %}
+            <span class="stock-badge in-stock"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> In Stock ({{ product.stock }})</span>
+        {% elif product.stock > 0 %}
+            <span class="stock-badge low-stock"><i data-lucide="alert-circle" style="width:12px;height:12px;"></i> Only {{ product.stock }} left</span>
+        {% else %}
+            <span class="stock-badge out-stock"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> Out of Stock</span>
+        {% endif %}
+
+        <div class="product-actions" style="margin-top: 14px;">
+            {% if product.stock > 0 %}
+            <button class="btn btn-primary" onclick="addToCart('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.price|stringformat:'f' }}', {{ product.stock }})">
+                <i data-lucide="shopping-cart" style="width:16px;height:16px;"></i> Add to Cart
+            </button>
+            {% else %}
+            <button class="btn" style="background:#f3f4f6;color:#9ca3af;flex:1;justify-content:center;" disabled>Out of Stock</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% empty %}
+<div style="grid-column: 1/-1; text-align: center; padding: 80px; color: #9ca3af;">
+    <i data-lucide="package" style="width:64px;height:64px;display:block;margin:0 auto 16px;"></i>
+    <h3>No products available right now.</h3>
+    <p style="margin-top:8px;">Check back soon!</p>
+</div>
+{% endfor %}
+</div>
+
+<script>
+    // Re-initialize lucide icons for new content
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>

@@ -1,0 +1,187 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+       
+        <a href="{% url 'dashboard' %}"><i data-lucide="layout-dashboard"></i>Dashboard</a>
+        <a href="{% url 'product_list' %}"><i data-lucide="box"></i>Products</a>
+        
+        {% if perms.accounts.view_stock %}
+<a href="{% url 'inventory' %}">
+    <i data-lucide="warehouse"></i> Inventory
+</a>
+{% endif %}
+
+{% if perms.accounts.view_sales %}
+<a href="{% url 'sales' %}">
+    <i data-lucide="shopping-cart"></i> POS
+</a>
+        <a href="{% url 'sales_records' %}">
+            <i data-lucide="list"></i> Sales Records
+        </a>
+        <a href="{% url 'orders_dashboard' %}">
+            <i data-lucide="package"></i> Manage Orders
+        </a>
+<a href="{% url 'expenses' %}">
+    <i data-lucide="wallet"></i> Expenses
+</a>
+{% endif %}
+        {% if can_manage_users %}
+            <a href="{% url 'user_list' %}"><i data-lucide="users"></i>Users</a>
+            <a href="{% url 'role_list' %}"><i data-lucide="layers"></i>Roles</a>
+            <a href="{% url 'permission_list' %}"><i data-lucide="shield"></i>Permissions</a>
+        {% endif %}
+    </div>
+
+    <!-- MAIN -->
+     <div class="main">  
+   <div class="topbar">
+    <div class="left">
+        Welcome {{ user.username }}
+    </div>
+
+    <div class="right">
+        <!-- TOGGLE -->
+        <button id="themeToggle" class="theme-toggle">
+            <i id="themeIcon" data-lucide="moon"></i>
+        </button>
+
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+</div>
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+</div>
+
+
+<script>
+    lucide.createIcons();
+</script>
+<script>
+    const toggle = document.getElementById("themeToggle");
+    const icon = document.getElementById("themeIcon");
+
+    function setTheme(mode) {
+        if (mode === "dark") {
+            document.body.classList.add("dark");
+            icon.setAttribute("data-lucide", "sun");
+        } else {
+            document.body.classList.remove("dark");
+            icon.setAttribute("data-lucide", "moon");
+        }
+
+        localStorage.setItem("theme", mode);
+
+        // 🔥 IMPORTANT: re-render icons
+        lucide.createIcons();
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+
+    toggle.addEventListener("click", () => {
+        const isDark = document.body.classList.contains("dark");
+        setTheme(isDark ? "light" : "dark");
+    });
+</script>
+
+<!-- Custom Modal System -->
+<style>
+.modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 10000; animation: fadeIn 0.3s ease;
+}
+.modal-content {
+    background: #fff; border-radius: 20px; width: 90%; max-width: 450px;
+    padding: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+body.dark .modal-content { background: #1e1e1e; color: #eee; }
+
+.modal-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.modal-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.modal-title { font-size: 20px; font-weight: 800; }
+.modal-body { font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 28px; }
+body.dark .modal-body { color: #aaa; }
+
+.modal-actions { display: flex; gap: 12px; }
+.modal-btn { flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: 0.2s; }
+.modal-btn.cancel { background: #f1f5f9; color: #475569; }
+.modal-btn.confirm { background: #6366f1; color: #fff; }
+.modal-btn.confirm.danger { background: #ef4444; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+
+<div class="modal-overlay" id="customModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-icon" id="modalIcon"></div>
+            <div class="modal-title" id="modalTitle">Confirm Action</div>
+        </div>
+        <div class="modal-body" id="modalBody">Are you sure you want to proceed?</div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+            <button class="modal-btn confirm" id="modalConfirmBtn">Proceed</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let modalCallback = null;
+function openModal(title, body, confirmText, type, callback) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = body;
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    confirmBtn.textContent = confirmText;
+    confirmBtn.className = 'modal-btn confirm ' + (type === 'danger' ? 'danger' : '');
+    
+    const iconDiv = document.getElementById('modalIcon');
+    if (type === 'danger') {
+        iconDiv.style.background = '#fee2e2';
+        iconDiv.style.color = '#ef4444';
+        iconDiv.innerHTML = '<i data-lucide="alert-triangle"></i>';
+    } else {
+        iconDiv.style.background = '#eef2ff';
+        iconDiv.style.color = '#6366f1';
+        iconDiv.innerHTML = '<i data-lucide="help-circle"></i>';
+    }
+    
+    document.getElementById('customModal').style.display = 'flex';
+    lucide.createIcons();
+    modalCallback = callback;
+}
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+}
+document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+    if (modalCallback) modalCallback();
+    closeModal();
+});
+</script>
+</body>
+</html>

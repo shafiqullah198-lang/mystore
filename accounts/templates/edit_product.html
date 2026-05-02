@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card">
+    <h2>Edit Product</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="{{ product.name }}" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description">{{ product.description }}</textarea>
+        <label>Buying Price</label>
+        <input type="number" name="buying_price" value="{{ product.buying_price }}" step="0.01" required>
+        <label for="price">Price</label>
+        <input type="number" id="price" name="price" value="{{ product.price }}" step="0.01" required>
+        <label for="stock">Stock</label>
+        <input type="number" id="stock" name="stock" value="{{ product.stock }}" min="0" required>
+
+        <label for="image">Image</label>
+        {% if product.image %}
+            <img src="{{ product.image.url }}" class="product-form-image" alt="{{ product.name }}">
+        {% endif %}
+        <input type="file" id="image" name="image" accept="image/*">
+
+        <button type="submit">Update</button>
+    </form>
+</div>
+
+{% endblock %}

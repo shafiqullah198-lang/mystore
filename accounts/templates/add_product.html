@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Add Product</h1>
+        <p>Create a new product record</p>
+    </div>
+    <a href="{% url 'product_list' %}" class="button secondary">Back to Products</a>
+</section>
+
+<div class="card form-panel">
+    <h2>Add Product</h2>
+
+    {% if error %}
+        <div class="form-errors">
+            <p>{{ error }}</p>
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Product Name" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Product Description"></textarea>
+        <label>Buying Price</label>
+        <input type="number" name="buying_price" step="0.01" required>
+        <label for="price">Price</label>
+        <input type="number" id="price" name="price" placeholder="Price" step="0.01" min="0" required>
+        <label for="stock">Initial Stock</label>
+        <input type="number" id="stock" name="stock" value="0" min="0" required>
+
+        <label for="image">Image</label>
+        <input type="file" id="image" name="image" accept="image/*">
+
+        <button type="submit" class="button primary form-submit">Add Product</button>
+    </form>
+</div>
+{% endblock %}

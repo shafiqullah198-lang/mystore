@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Products</h1>
+        <p>Manage product records and availability</p>
+    </div>
+    {% if perms.accounts.can_add_product %}
+        <a href="{% url 'add_product' %}" class="button primary">+ Add Product</a>
+    {% endif %}
+</section>
+
+<div class="product-grid">
+    {% for product in products %}
+        <article class="product-card">
+            {% if perms.accounts.can_edit_product or perms.accounts.can_delete_product %}
+                <div class="menu-wrapper">
+                    <button type="button" class="menu-btn" onclick="toggleMenu(event, this)" aria-label="Open product actions">
+                        &#8942;
+                    </button>
+
+                    <div class="menu-dropdown">
+                        {% if perms.accounts.can_edit_product %}
+                            <a href="{% url 'edit_product' product.id %}">Edit</a>
+                        {% endif %}
+
+                        {% if perms.accounts.can_delete_product %}
+                            <form method="post" action="{% url 'delete_product' product.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Delete</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if product.image %}
+                <img src="{{ product.image.url }}" class="product-img" alt="{{ product.name }}">
+            {% else %}
+                <div class="no-img">No Image</div>
+            {% endif %}
+
+            <h3>{{ product.name }}</h3>
+            <p>Rs {{ product.price|floatformat:0|intcomma }}</p>
+            {% if product.description %}
+                <p class="desc">{{ product.description|truncatechars:60 }}</p>
+            {% endif %}
+            <a href="{% url 'product_detail' product.id %}" class="btn-view-detail">View Details</a>
+        </article>
+    {% empty %}
+        <div class="panel empty-state">No products found.</div>
+    {% endfor %}
+</div>
+
+<script>
+function toggleMenu(event, btn) {
+    event.stopPropagation();
+
+    document.querySelectorAll('.menu-dropdown').forEach(menu => {
+        if (menu !== btn.nextElementSibling) {
+            menu.style.display = 'none';
+        }
+    });
+
+    const menu = btn.nextElementSibling;
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+document.addEventListener('click', function() {
+    document.querySelectorAll('.menu-dropdown').forEach(menu => {
+        menu.style.display = 'none';
+    });
+});
+</script>
+{% endblock %}
