@@ -532,7 +532,7 @@
             const badge = document.getElementById('navCartCount');
             if (badge) badge.textContent = total;
         }
-        function addToCart(productId, productName, productPrice, productStock, quantity = 1, productImage = '') {
+        function addToCart(productId, productName, productPrice, productStock, quantity = 1, productImage = '', compareAtPrice = null) {
             let cart = getCart();
             const existing = cart.find(i => i.product_id == productId);
             if (existing) {
@@ -552,7 +552,8 @@
                     price: productPrice, 
                     quantity: quantity, 
                     stock: productStock,
-                    image: productImage 
+                    image: productImage,
+                    compare_at_price: compareAtPrice
                 });
                 showToast(`${productName} added to cart!`, 'success');
             }
@@ -660,9 +661,12 @@
                                     item.image = cloud.image;
                                     updated = true;
                                 }
-                                // Also sync price while we're at it
                                 if (item.price != cloud.price) {
                                     item.price = cloud.price;
+                                    updated = true;
+                                }
+                                if (item.compare_at_price != cloud.compare_at_price) {
+                                    item.compare_at_price = cloud.compare_at_price;
                                     updated = true;
                                 }
                             }

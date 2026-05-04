@@ -30,8 +30,14 @@
                     <div style="display:flex;justify-content:space-between;font-size:14px;color:#6b7280;">
                         <span>Subtotal</span><span id="summarySubtotal">Rs 0</span>
                     </div>
+                    <div style="display:flex;justify-content:space-between;font-size:14px;color:#6b7280;display:none;" id="summarySavingsRow">
+                        <span>Total Savings</span><span id="summarySavings" style="color:#10b981;font-weight:700;">- Rs 0</span>
+                    </div>
                     <div style="display:flex;justify-content:space-between;font-size:14px;color:#6b7280;">
-                        <span>Items</span><span id="summaryItems">0</span>
+                        <span>Delivery</span><span style="color:#10b981;font-weight:700;">FREE</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#9ca3af;margin-top:-4px;">
+                        <span>Est. Delivery</span><span id="estDelivery">2-4 Business Days</span>
                     </div>
                     <div style="height:1px;background:#f3f4f6;"></div>
                     <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:#111827;">
@@ -53,6 +59,14 @@
                 </h3>
                 <div id="upsellItems" style="display:flex;flex-direction:column;gap:16px;"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- You May Also Like Section -->
+    <div style="margin-top: 80px;" id="recommendationsSection">
+        <h2 style="font-size:24px;font-weight:800;margin-bottom:24px;color:#111827;">You may also like</h2>
+        <div id="recommendationGrid" class="product-grid">
+            <!-- Will be populated by JS -->
         </div>
     </div>
 </section>
@@ -101,12 +115,18 @@ function renderCart() {
 
     let total = 0;
     let totalItems = 0;
+    let totalSavings = 0;
 
     cart.forEach((item, idx) => {
         let price = parseFloat(String(item.price).replace(/,/g, '')) || 0;
+        let compareAt = item.compare_at_price ? parseFloat(String(item.compare_at_price).replace(/,/g, '')) : 0;
         let itemTotal = price * item.quantity;
         total += itemTotal;
         totalItems += item.quantity;
+
+        if (compareAt > price) {
+            totalSavings += (compareAt - price) * item.quantity;
+        }
 
         const div = document.createElement('div');
         div.className = 'cart-item-card';
@@ -114,7 +134,10 @@ function renderCart() {
             ${item.image ? `<img src="${item.image}" class="cart-item-img">` : `<div class="cart-item-placeholder"><i data-lucide="package"></i></div>`}
             <div style="flex:1;">
                 <div style="font-size:16px;font-weight:700;color:#111827;">${item.name}</div>
-                <div style="font-size:14px;color:#6b7280;margin-top:2px;">Rs ${price.toLocaleString()} each</div>
+                <div style="font-size:14px;color:#6b7280;margin-top:2px;">
+                    Rs ${price.toLocaleString()}
+                    ${compareAt > price ? `<span style="text-decoration:line-through;font-size:12px;margin-left:8px;opacity:0.6;">Rs ${compareAt.toLocaleString()}</span>` : ''}
+                </div>
             </div>
             <div class="qty-control">
                 <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
@@ -129,8 +152,22 @@ function renderCart() {
 
     subtitle.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} in your cart`;
     document.getElementById('summarySubtotal').textContent = `Rs ${total.toLocaleString()}`;
-    document.getElementById('summaryItems').textContent = totalItems;
     document.getElementById('summaryTotal').textContent = `Rs ${total.toLocaleString()}`;
+    
+    const savingsRow = document.getElementById('summarySavingsRow');
+    const savingsVal = document.getElementById('summarySavings');
+    if (totalSavings > 0) {
+        savingsRow.style.display = 'flex';
+        savingsVal.textContent = `- Rs ${totalSavings.toLocaleString()}`;
+    } else {
+        savingsRow.style.display = 'none';
+    }
+
+    // Set delivery estimate (Today + 2-4 days)
+    const options = { month: 'short', day: 'numeric' };
+    const minDate = new Date(); minDate.setDate(minDate.getDate() + 2);
+    const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 4);
+    document.getElementById('estDelivery').textContent = `${minDate.toLocaleDateString(undefined, options)} - ${maxDate.toLocaleDateString(undefined, options)}`;
     
     lucide.createIcons();
 
@@ -157,12 +194,30 @@ function renderCart() {
                             <div style="font-size:13px;font-weight:600;color:#111827;">${p.name}</div>
                             <div style="font-size:13px;color:#6366f1;font-weight:700;">Rs ${parseFloat(p.price).toLocaleString()}</div>
                         </div>
-                        <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.price}', ${p.stock}, 1, '${p.image || ''}'); renderCart();" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">Add</button>
+                        <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.price}', ${p.stock}, 1, '${p.image || ''}', ${p.compare_at_price || 'null'}); renderCart();" class="btn btn-outline" style="padding:6px 12px;font-size:12px;">Add</button>
                     `;
                     upsellItems.appendChild(div);
                 }
             });
             upsellSection.style.display = upsellItems.children.length > 0 ? 'block' : 'none';
+
+            // Populate Recommendation Grid at bottom
+            const recGrid = document.getElementById('recommendationGrid');
+            recGrid.innerHTML = '';
+            data.upsells.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="product-body">
+                        ${p.image ? `<img src="${p.image}" class="product-img">` : '<div class="product-img-placeholder">No Image</div>'}
+                        <div class="product-name">${p.name}</div>
+                        <div class="product-price">Rs ${parseFloat(p.price).toLocaleString()}</div>
+                        <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.price}', ${p.stock}, 1, '${p.image || ''}', ${p.compare_at_price || 'null'}); renderCart();" class="btn btn-primary" style="width:100%;margin-top:10px;">Add to Cart</button>
+                    </div>
+                `;
+                recGrid.appendChild(card);
+            });
+            document.getElementById('recommendationsSection').style.display = data.upsells.length > 0 ? 'block' : 'none';
         } else {
             upsellSection.style.display = 'none';
         }
@@ -182,10 +237,21 @@ function changeQty(idx, delta) {
 }
 
 function removeItem(idx) {
-    let cart = getCart();
-    cart.splice(idx, 1);
-    saveCart(cart);
-    renderCart();
+    const cart = getCart();
+    const item = cart[idx];
+    openModal(
+        'Remove Item?', 
+        `Are you sure you want to remove "${item.name}" from your cart?`,
+        'Remove',
+        'danger',
+        () => {
+            let newCart = getCart();
+            newCart.splice(idx, 1);
+            saveCart(newCart);
+            renderCart();
+            showToast('Item removed', 'success');
+        }
+    );
 }
 
 renderCart();

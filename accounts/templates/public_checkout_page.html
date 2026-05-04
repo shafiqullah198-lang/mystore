@@ -4,7 +4,14 @@
 {% block title %}Checkout - MyStore{% endblock %}
 
 {% block extra_head %}
+<!-- intl-tel-input CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css" />
 <style>
+    /* Fix intl-tel-input width to match other fields */
+    .iti { width: 100%; }
+    .iti__input { width: 100%; padding: 14px 18px !important; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 14px; color: #1e293b; outline: none; transition: all 0.2s; background: #fdfdfd; }
+    .iti__input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.08); }
+
     /* ===== PAGE ===== */
     .checkout-wrapper {
         max-width: 1000px;
@@ -162,6 +169,38 @@
         30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
         40%, 60% { transform: translate3d(4px, 0, 0); }
     }
+
+    /* ===== SPINNER ===== */
+    .spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .pay-btn.loading .btn-text { visibility: hidden; }
+    .pay-btn.loading .spinner { display: block; position: absolute; }
+
+    /* ===== SECURE BADGE ===== */
+    .secure-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: #f0fdf4;
+        border-radius: 12px;
+        color: #166534;
+        font-size: 13px;
+        font-weight: 700;
+        border: 1px solid #dcfce7;
+    }
 </style>
 {% endblock %}
 
@@ -194,14 +233,41 @@
             <h2>Payment Information</h2>
             <p>Choose your payment method and enter your details.</p>
 
-            <div class="method-grid">
-                <div class="method-btn" onclick="selectMethod('bank')" id="method-bank">
-                    <span class="method-icon">🏦</span>
-                    <div class="method-label">Bank</div>
+            <div class="field-row" style="margin-bottom: 16px;">
+                <div class="field-group" style="margin-bottom: 0;">
+                    <label class="field-label">Email Address *</label>
+                    <input type="email" class="field-input" id="customerEmail" placeholder="you@example.com">
                 </div>
+                <div class="field-group" style="margin-bottom: 0;">
+                    <label class="field-label">Phone Number *</label>
+                    <input type="tel" class="field-input" id="customerPhone" placeholder="3456789101">
+                </div>
+            </div>
+            <div class="field-group" style="margin-bottom: 24px;">
+                <label class="field-label">Shipping Address *</label>
+                <textarea class="field-input" id="shippingAddress" placeholder="Full delivery address" rows="2" style="resize:none; padding:14px 18px;"></textarea>
+            </div>
+
+            <div class="method-grid" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 32px;">
                 <div class="method-btn selected" onclick="selectMethod('card')" id="method-card">
                     <span class="method-icon">💳</span>
                     <div class="method-label">Card</div>
+                </div>
+                <div class="method-btn" onclick="selectMethod('easypaisa')" id="method-easypaisa">
+                    <span class="method-icon"><svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg></span>
+                    <div class="method-label">EasyPaisa</div>
+                </div>
+                <div class="method-btn" onclick="selectMethod('gpay')" id="method-gpay">
+                    <span class="method-icon"><svg viewBox="0 0 48 48" style="width:24px;height:24px;"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg></span>
+                    <div class="method-label">G Pay</div>
+                </div>
+                <div class="method-btn" onclick="selectMethod('applepay')" id="method-applepay">
+                    <span class="method-icon"><svg viewBox="0 0 170 170" style="width:20px;height:20px;"><path fill="#000" d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.74 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.92.21-9.84-1.96-14.74-6.53-3.13-2.73-7.1-7.43-11.9-14.1-5.97-8.24-11.16-17.57-15.54-28.02-4.39-10.45-6.58-20.25-6.58-29.41 0-10.85 2.25-19.86 6.74-27.03 4.49-7.17 10.23-12.27 17.21-15.31 6.74-3.04 13.59-4.56 20.52-4.56 4.93 0 10.15 1.15 15.65 3.44 5.51 2.3 9.4 3.44 11.69 3.44 2.06 0 6.07-1.15 12.01-3.44 5.95-2.3 11.53-3.44 16.74-3.44 6.96 0 13.88 1.83 20.76 5.48 6.89 3.66 12.03 8.35 15.42 14.08-11.83 7.02-17.75 16.35-17.75 27.99 0 7.82 2.65 14.86 7.96 21.12 5.3 6.26 12.35 9.77 21.14 10.53-2.14 5.95-4.66 11.39-7.55 16.34zm-39.6-113.6c-5.71 0-11.53 2.1-17.47 6.29-5.94 4.19-10.1 9.87-12.47 17.03 5.48.21 11.02-1.78 16.63-5.98 5.61-4.2 9.86-10 12.75-17.41-.47-.1-.95-.14-1.44-.14z"/></svg></span>
+                    <div class="method-label">Apple Pay</div>
+                </div>
+                <div class="method-btn" onclick="selectMethod('bank')" id="method-bank">
+                    <span class="method-icon">🏦</span>
+                    <div class="method-label">Bank</div>
                 </div>
             </div>
 
@@ -211,9 +277,10 @@
                     <label class="field-label">Card holder</label>
                     <input type="text" class="field-input" id="cardName" placeholder="e.g. John Doe">
                 </div>
-                <div class="field-group">
+                <div class="field-group" style="position:relative;">
                     <label class="field-label">Card number</label>
-                    <input type="text" class="field-input" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCardNumber(this)">
+                    <input type="text" class="field-input" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCardNumber(this)" style="padding-right: 50px;">
+                    <div id="cardLogo" style="position:absolute; right:16px; top:34px; font-size:20px; display:flex; align-items:center; justify-content:center; width:32px; height:24px;">💳</div>
                 </div>
                 <div class="field-row">
                     <div class="field-group">
@@ -225,7 +292,14 @@
                         <input type="password" class="field-input" id="cardCvv" placeholder="•••" maxlength="4">
                     </div>
                 </div>
-                <button class="pay-btn" onclick="placeOrder('card')" id="payCardBtn">Buy Now</button>
+                <div class="secure-badge">
+                    <i data-lucide="lock" style="width:14px; height:14px;"></i>
+                    Secure SSL Encrypted Payment
+                </div>
+                <button class="pay-btn" onclick="placeOrder('card')" id="payCardBtn" style="position:relative;">
+                    <span class="btn-text">Buy Now</span>
+                    <div class="spinner"></div>
+                </button>
             </div>
 
             <!-- BANK FORM -->
@@ -239,7 +313,49 @@
                     <label class="field-label">Reference Number</label>
                     <input type="text" class="field-input" id="bankRef" placeholder="TXN-123456">
                 </div>
-                <button class="pay-btn" onclick="placeOrder('bank')" id="payBankBtn">Confirm Transfer</button>
+                <div class="secure-badge">
+                    <i data-lucide="lock" style="width:14px; height:14px;"></i>
+                    Secure Transaction
+                </div>
+                <button class="pay-btn" onclick="placeOrder('bank')" id="payBankBtn">
+                    <span class="btn-text">Confirm Transfer</span>
+                    <div class="spinner"></div>
+                </button>
+            </div>
+
+            <!-- EASYPAISA FORM -->
+            <div id="form-easypaisa" style="display:none;">
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; margin-bottom:20px; font-size:13px; color:#166534;">
+                    <strong>EasyPaisa Merchant:</strong> MyStore Official<br>
+                    <strong>Till ID:</strong> 1234567<br>
+                    Please send the payment and enter the 11-digit TID below.
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Transaction ID (TID)</label>
+                    <input type="text" class="field-input" id="easypaisaTid" placeholder="e.g. 12345678901">
+                </div>
+                <button class="pay-btn" onclick="placeOrder('easypaisa')" id="payEasypaisaBtn" style="background:#10b981; color:white;">
+                    <span class="btn-text">Confirm EasyPaisa Payment</span>
+                    <div class="spinner"></div>
+                </button>
+            </div>
+
+            <!-- GPAY FORM -->
+            <div id="form-gpay" style="display:none; text-align:center;">
+                <p style="margin-bottom:24px; color:#64748b;">You will be securely redirected to Google Pay to complete your purchase.</p>
+                <button class="pay-btn" onclick="placeOrder('gpay')" id="payGpayBtn" style="background:#1e1e1e; display:flex; justify-content:center; align-items:center; gap:8px;">
+                    <span class="btn-text">Pay with Google Pay</span>
+                    <div class="spinner"></div>
+                </button>
+            </div>
+
+            <!-- APPLEPAY FORM -->
+            <div id="form-applepay" style="display:none; text-align:center;">
+                <p style="margin-bottom:24px; color:#64748b;">You will be securely redirected to Apple Pay to complete your purchase.</p>
+                <button class="pay-btn" onclick="placeOrder('applepay')" id="payApplepayBtn" style="background:#000; display:flex; justify-content:center; align-items:center; gap:8px;">
+                    <span class="btn-text">Pay with Apple Pay</span>
+                    <div class="spinner"></div>
+                </button>
             </div>
         </div>
 
@@ -265,8 +381,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
 <script>
     let selectedMethod = 'card';
+    let phoneInputObj;
 
     function loadSummary() {
         const receiptContainer = document.getElementById('receiptLines');
@@ -320,7 +438,7 @@
 
     function selectMethod(method) {
         selectedMethod = method;
-        ['bank', 'card'].forEach(m => {
+        ['bank', 'card', 'easypaisa', 'gpay', 'applepay'].forEach(m => {
             const btn = document.getElementById('method-' + m);
             const form = document.getElementById('form-' + m);
             if (btn) btn.classList.remove('selected');
@@ -334,6 +452,18 @@
 
     function formatCardNumber(input) {
         let val = input.value.replace(/\D/g, '').substring(0, 16);
+        
+        const logoEl = document.getElementById('cardLogo');
+        if (logoEl) {
+            if (val.startsWith('4')) {
+                logoEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 83" style="height:14px;width:auto;" fill="#1434CB"><path d="M111.4 81.3l17.7-80.1h27.8l-17.7 80.1h-27.8zm90.4-78c-5.4-2-13.8-4.2-24.8-4.2-27.5 0-46.9 14.5-47.1 35.3-.2 15.3 13.9 23.8 24.5 28.9 10.8 5.2 14.5 8.6 14.5 13.2-.2 7.1-8.5 10.4-16.5 10.4-11.4 0-18.4-1.8-28.2-6.1l-4 18.5c7.1 3.2 20.3 6 34.1 6.1 29.4 0 48.4-14.3 48.7-36.5.1-12.2-7.2-21.5-23.6-29-9.8-4.8-15.8-8.1-15.8-13 0-4.5 5.2-9.2 15.5-9.2 8.7-.1 14.9 1.8 21 4.5l3.8-18.3h-.1L201.8 3.3zM81.7 81.3H56l-15.8-59.9C39.6 18.3 38 16 35 14.6 26.6 10.7 12.7 7.1 0 5L1.5 0h40.3c5.1 0 9.8 3.4 11.2 8.9L64 56.4l19.5-55.2H112L81.7 81.3zm174.3 0H230l-10-27.4h-28.1l-4.7 27.4h-26l24.4-80.1h24c5.8 0 10 2.6 11.8 8.1l20.3 72zm-28-39.7c-2.4-6.4-11.5-31.5-11.5-31.5l-6.6 31.5h18.1z"/></svg>';
+            } else if (val.startsWith('5')) {
+                logoEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 15" style="height:20px;width:auto;"><path fill="#ff5f00" d="M15.2 14.4c1.8-1.5 3-3.8 3-6.4s-1.2-4.9-3-6.4c-1.8 1.5-3 3.8-3 6.4s1.2 4.9 3 6.4z"/><path fill="#eb001b" d="M9.4 1.6C7.5 1.6 5.8 2.6 4.8 4.1L12.4 15A7.8 7.8 0 0015.2 8a7.8 7.8 0 00-2.8-6.4H9.4z"/><path fill="#f79e1b" d="M22.5 8c0 3.5-2.2 6.5-5.3 7.6v-14C20.3 2.7 22.5 5.2 22.5 8z"/></svg>';
+            } else {
+                logoEl.innerHTML = '💳';
+            }
+        }
+        
         val = val.match(/.{1,4}/g)?.join(' ') || val;
         input.value = val;
     }
@@ -404,11 +534,46 @@
             }
         }
 
-        const btn = document.getElementById(method === 'bank' ? 'payBankBtn' : 'payCardBtn');
+        const customerEmail = document.getElementById('customerEmail').value.trim();
+        let customerPhone = document.getElementById('customerPhone').value.trim();
         
-        btn.disabled = true;
-        const originalText = btn.textContent;
-        btn.textContent = 'Processing...';
+        // Get full international number if intl-tel-input is initialized
+        if (typeof phoneInputObj !== 'undefined' && phoneInputObj) {
+            if (customerPhone) {
+                customerPhone = phoneInputObj.getNumber();
+            }
+        }
+        
+        const shippingAddress = document.getElementById('shippingAddress').value.trim();
+
+        if (!customerEmail) {
+            document.getElementById('customerEmail').classList.add('error');
+            showToast('Please enter an email address.', 'error');
+            return;
+        }
+        if (!customerPhone) {
+            document.getElementById('customerPhone').classList.add('error');
+            showToast('Please enter a phone number.', 'error');
+            return;
+        }
+        if (!shippingAddress) {
+            document.getElementById('shippingAddress').classList.add('error');
+            showToast('Please enter a shipping address.', 'error');
+            return;
+        }
+
+        let btnId = 'payCardBtn';
+        if (method === 'bank') btnId = 'payBankBtn';
+        if (method === 'easypaisa') btnId = 'payEasypaisaBtn';
+        if (method === 'gpay') btnId = 'payGpayBtn';
+        if (method === 'applepay') btnId = 'payApplepayBtn';
+
+        const btn = document.getElementById(btnId);
+        
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('loading');
+        }
 
         fetch('/public_checkout/', {
             method: 'POST',
@@ -421,7 +586,9 @@
                 payment_method: method,
                 customer_name: document.getElementById('cardName')?.value || 'Guest',
                 card_expiry: document.getElementById('cardExpiry')?.value || '',
-                customer_email: '', customer_phone: '', shipping_address: '',
+                customer_email: customerEmail, 
+                customer_phone: customerPhone, 
+                shipping_address: shippingAddress,
             })
         })
         .then(r => r.json())
@@ -432,13 +599,13 @@
                 showSuccess(data);
             } else {
                 btn.disabled = false;
-                btn.textContent = originalText;
+                btn.classList.remove('loading');
                 showToast(data.error || 'Payment failed.', 'error');
             }
         })
         .catch(err => {
             btn.disabled = false;
-            btn.textContent = 'Retry';
+            btn.classList.remove('loading');
             console.error(err);
             alert('Network error. Please try again.');
         });
@@ -457,6 +624,24 @@
     }
 
     // Initialize
-    document.addEventListener('DOMContentLoaded', loadSummary);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSummary();
+        
+        // Initialize intl-tel-input for phone number
+        const phoneInputField = document.getElementById("customerPhone");
+        if (phoneInputField) {
+            phoneInputObj = window.intlTelInput(phoneInputField, {
+                initialCountry: "pk",
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
+            });
+        }
+        
+        // Load saved details from cart
+        const savedEmail = localStorage.getItem('checkout_email');
+        const savedAddress = localStorage.getItem('checkout_address');
+        if (savedEmail) document.getElementById('customerEmail').value = savedEmail;
+        if (savedAddress) document.getElementById('shippingAddress').value = savedAddress;
+    });
 </script>
 {% endblock %}

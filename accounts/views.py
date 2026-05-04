@@ -1144,6 +1144,7 @@ def get_cart_upsells(request):
                 'price': str(p.price),
                 'image': p.image.url if p.image else '',
                 'stock': p.stock,
+                'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
             })
             
         return JsonResponse({'upsells': results})
@@ -1167,7 +1168,8 @@ def get_cart_items_data(request):
                 'image': p.image.url if p.image else '',
                 'price': str(p.price),
                 'stock': p.stock,
-                'name': p.name
+                'name': p.name,
+                'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None
             }
         return JsonResponse({'items': results})
     except Exception as e:
