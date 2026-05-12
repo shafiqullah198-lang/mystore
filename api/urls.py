@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import (
     TokenBlacklistView,
 )
 from .views import (
-    CurrentUserView, DashboardStatsView, RevenueChartView,
+    CurrentUserView, DashboardStatsView, RevenueChartView, OrderStatsView,
     ProductViewSet, CategoryViewSet, BrandViewSet,
     CheckoutView, SaleViewSet, InvoiceViewSet,
     OrderViewSet, ExpenseViewSet,
@@ -35,6 +35,7 @@ urlpatterns = [
     # Dashboard
     path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard_stats'),
     path('dashboard/revenue-chart/', RevenueChartView.as_view(), name='revenue_chart'),
+    path('dashboard/order-stats/', OrderStatsView.as_view(), name='order_stats'),
 
     # POS
     path('pos/checkout/', CheckoutView.as_view(), name='pos_checkout'),

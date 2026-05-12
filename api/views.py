@@ -81,6 +81,28 @@ class RevenueChartView(APIView):
             'data': revenue_data
         })
 
+class OrderStatsView(APIView):
+    def get(self, request):
+        total = Order.objects.count()
+        placed = Order.objects.filter(status='placed').count()
+        confirmed = Order.objects.filter(status='confirmed').count()
+        processing = Order.objects.filter(status='processing').count()
+        shipped = Order.objects.filter(status='shipped').count()
+        out_for_delivery = Order.objects.filter(status='out_for_delivery').count()
+        delivered = Order.objects.filter(status='delivered').count()
+        cancelled = Order.objects.filter(status='cancelled').count()
+        
+        return Response({
+            'total': total,
+            'placed': placed,
+            'confirmed': confirmed,
+            'processing': processing,
+            'shipped': shipped,
+            'out_for_delivery': out_for_delivery,
+            'delivered': delivered,
+            'cancelled': cancelled,
+        })
+
 # --- PRODUCT & INVENTORY VIEWS ---
 
 class ProductViewSet(viewsets.ModelViewSet):

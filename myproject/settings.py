@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-tfh#6h&*3!b-&r8b_oyt7bekenw*x%c(%k29y0r5v85z(wr(j4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'shafiq123.pythonanywhere.com']
 
 
 # Application definition
@@ -175,5 +175,17 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True  # Set to False and specify CORS_ALLOWED_ORIGINS in production
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:54369",
+    "http://127.0.0.1:54369",
+]
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 STATIC_URL = 'static/'
 STATIC_ROOT = '/home/shafiq123/mystore/staticfiles'
