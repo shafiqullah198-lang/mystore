@@ -175,3 +175,5 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True  # Set to False and specify CORS_ALLOWED_ORIGINS in production
+STATIC_URL = 'static/'
+STATIC_ROOT = '/home/shafiq123/mystore/staticfiles'
