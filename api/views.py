@@ -34,6 +34,7 @@ class CurrentUserView(APIView):
 # --- DASHBOARD VIEWS ---
 
 class DashboardStatsView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         today = timezone.now().date()
         start_of_month = today.replace(day=1)
@@ -52,6 +53,8 @@ class DashboardStatsView(APIView):
         # Recent Activities
         recent_activities = ActivitySerializer(Activity.objects.all()[:5], many=True).data
         
+        total_users = User.objects.count()
+        
         return Response({
             'stats': {
                 'total_revenue': total_revenue,
@@ -60,6 +63,7 @@ class DashboardStatsView(APIView):
                 'total_orders': total_orders,
                 'pending_orders': pending_orders,
                 'total_products': total_products,
+                'total_users': total_users,
                 'low_stock_count': low_stock_count,
             },
             'recent_activities': recent_activities
