@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Sum, Count, F
 from django.utils import timezone
 from django.contrib.auth.models import User, Group, Permission
+from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 
 from accounts.models import (
@@ -152,29 +153,67 @@ class CheckoutView(APIView):
         if not items:
             return Response({'error': 'No items in cart'}, status=status.HTTP_400_BAD_REQUEST)
 
+        total_amount = 0
+        total_profit = 0
+        total_discount = 0
+        prepared_items = []
+        requested_quantities = {}
+
+        for item in items:
+            product_id = item.get('product_id') or item.get('product')
+            if not product_id:
+                return Response({'error': 'Each cart item must include a product id'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                product = Product.objects.select_for_update().get(id=product_id)
+            except Product.DoesNotExist:
+                return Response({'error': f'Product not found: {product_id}'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                qty = int(item.get('quantity', 0))
+            except (TypeError, ValueError):
+                return Response({'error': 'Quantity must be a valid number'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if qty <= 0:
+                return Response({'error': 'Quantity must be greater than 0'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            requested_quantities[product.id] = requested_quantities.get(product.id, 0) + qty
+            if product.stock < requested_quantities[product.id]:
+                return Response({'error': f"Insufficient stock for {product.name}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                discount = Decimal(str(item.get('discount', 0)))
+            except (InvalidOperation, TypeError, ValueError):
+                return Response({'error': 'Discount must be a valid number'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if discount < 0:
+                return Response({'error': 'Discount cannot be negative'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                selling_price = Decimal(str(item.get('selling_price', item.get('price', product.price))))
+            except (InvalidOperation, TypeError, ValueError):
+                return Response({'error': 'Selling price must be a valid number'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if selling_price < 0:
+                return Response({'error': 'Selling price cannot be negative'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if discount > selling_price * qty:
+                return Response({'error': f"Discount cannot exceed total for {product.name}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            prepared_items.append((product, qty, selling_price, discount))
+
         # Create Invoice
         invoice = Invoice.objects.create(
             created_by=request.user,
             payment_method=payment_method
         )
 
-        total_amount = 0
-        total_profit = 0
-        total_discount = 0
-
-        for item in items:
-            product = Product.objects.get(id=item['product_id'])
-            qty = int(item['quantity'])
-            
-            if product.stock < qty:
-                raise ValueError(f"Insufficient stock for {product.name}")
-
-            discount = float(item.get('discount', 0))
+        for product, qty, selling_price, discount in prepared_items:
             sale = Sale.objects.create(
                 invoice=invoice,
                 product=product,
                 quantity=qty,
-                selling_price=product.price,
+                selling_price=selling_price,
                 buying_price=product.buying_price,
                 discount=discount,
                 created_by=request.user
